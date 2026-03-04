@@ -86,23 +86,6 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
     setLoginError('Invalid email or password')
   }
 
-  const handleSignup = () => {
-    setLoginError('')
-    
-    if (!name || !email) {
-      setLoginError('Please enter name and email')
-      return
-    }
-
-    const options = role === 'customer' 
-      ? db.customers.filter((c) => c.active)
-      : db.workers.filter((w) => w.active)
-    
-    if (options[0]) {
-      onLogin({ id: options[0].id, role, name: options[0].name })
-    }
-  }
-
   // Welcome Screen
   if (activeTab === 'welcome') {
     return (
