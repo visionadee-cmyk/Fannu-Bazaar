@@ -3,7 +3,7 @@ import type { SessionUser } from '../lib/types'
 import { useDBSnapshot } from '../lib/hooks'
 import { 
   Wrench, Paintbrush, Zap, Droplets, Hammer, Truck, Camera, Music, Laptop, ChefHat,
-  Search, Briefcase, UserCog, ArrowRight, Mail, Lock, Eye, EyeOff, User
+  Search, Briefcase, UserCog, ArrowRight, Mail, Lock, Eye, EyeOff
 } from 'lucide-react'
 
 // Teal/Cyan color scheme matching ASANA style
@@ -33,7 +33,6 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
   const [role, setRole] = useState<'customer' | 'worker'>('customer')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [name, setName] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showAdminLogin, setShowAdminLogin] = useState(false)
   const [loginError, setLoginError] = useState('')
@@ -183,7 +182,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
             <div className="space-y-4">
               <div className="relative">
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Admin email" className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 focus:outline-none focus:ring-2" style={{ focusRingColor: THEME.primary }} />
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Admin email" className="w-full pl-12 pr-4 py-4 rounded-xl border border-gray-200 bg-gray-50 text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500" />
               </div>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
