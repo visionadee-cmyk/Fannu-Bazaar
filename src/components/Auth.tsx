@@ -49,13 +49,17 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
     // Get stored password (default is 'admin123')
     const storedPassword = localStorage.getItem('fannu_admin_password') || 'admin123'
     
-    // Find admin by email (case insensitive)
-    const admin = db.admins.find((a) => 
-      a.active && a.email?.toLowerCase() === email.toLowerCase().trim()
-    )
+    // Find first active admin (since there's only one admin)
+    const admin = db.admins.find((a) => a.active)
     
     if (!admin) {
-      setLoginError('Admin account not found')
+      setLoginError('No active admin account found')
+      return
+    }
+    
+    // Check if email matches (case insensitive)
+    if (email.toLowerCase().trim() !== admin.email?.toLowerCase()) {
+      setLoginError('Email does not match admin account')
       return
     }
     
