@@ -173,6 +173,12 @@ export function seedIfEmpty() {
       {
         id: 'a_1',
         name: 'Admin',
+        email: 'admin@demo.com',
+        active: true,
+      },
+      {
+        id: 'a_2',
+        name: 'Rettey',
         email: 'retey.ay@hotmail.com',
         active: true,
       },
