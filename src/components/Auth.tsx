@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { SessionUser } from '../lib/types'
 import { useDBSnapshot } from '../lib/hooks'
 import { 
@@ -27,7 +27,6 @@ import {
   UserCog,
   Sparkles,
   ArrowRight,
-  CheckCircle2
 } from 'lucide-react'
 
 const skillIcons = [
@@ -55,7 +54,6 @@ const skillIcons = [
 
 export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void }) {
   const db = useDBSnapshot()
-  const [selectedRole, setSelectedRole] = useState<'customer' | 'worker' | 'admin' | null>(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showAdminLogin, setShowAdminLogin] = useState(false)
@@ -63,7 +61,6 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
   const ADMIN_EMAIL = 'rettey.ay@hotmail.com'
 
   const handleRoleSelect = (role: 'customer' | 'worker') => {
-    setSelectedRole(role)
     // Auto-login with first available profile for demo
     const options = role === 'customer' 
       ? db.customers.filter((c) => c.active)

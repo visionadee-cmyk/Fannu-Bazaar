@@ -6,7 +6,7 @@ interface BottomNavProps {
 }
 
 export default function BottomNav({ userRole, onSignOut }: BottomNavProps) {
-  const navItems = {
+  const navItems: Record<string, Array<{ icon: typeof Home; label: string; active: boolean; onClick?: () => void }>> = {
     admin: [
       { icon: Home, label: 'Dashboard', active: true },
       { icon: Users, label: 'Users', active: false },
