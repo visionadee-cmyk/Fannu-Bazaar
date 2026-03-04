@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { motion } from 'framer-motion'
 import {
   addReview,
   chooseOffer,
@@ -13,256 +14,180 @@ import { useDBSnapshot } from '../lib/hooks'
 import ServiceRequestForm from './ServiceRequestForm'
 import WorkerProfileModal from './WorkerProfileModal'
 import type { ServiceCategory, ServiceRequest, SessionUser, WorkerProfile } from '../lib/types'
+import { 
+  Plus, Search, CheckCircle, Clock, Star, User, Briefcase, 
+  ChevronRight, Calendar, DollarSign, MapPin, Wrench
+} from 'lucide-react'
+
+const THEME = {
+  primary: '#14b8a6',
+  primaryDark: '#0d9488',
+  primaryLight: '#5eead4',
+  bg: '#f0fdfa',
+  gray50: '#f9fafb',
+  gray100: '#f3f4f6',
+  gray800: '#1f2937',
+}
 
 const CATEGORIES: Array<ServiceCategory | 'All'> = [
-  'All',
-  'AC',
-  'Plumbing',
-  'Electrical',
-  'Carpentry',
-  'Cleaning',
-  'Painting',
-  'Appliance',
-  'PestControl',
-  'Other',
+  'All', 'AC', 'Plumbing', 'Electrical', 'Carpentry', 
+  'Cleaning', 'Painting', 'Appliance', 'PestControl', 'Other'
 ]
 
-function statusLabel(s: string) {
-  return s.replace(/_/g, ' ')
-}
+function statusLabel(s: string) { return s.replace(/_/g, ' ') }
 
 function formatIso(iso?: string) {
   if (!iso) return '-'
-  const d = new Date(iso)
-  return d.toLocaleString()
+  return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
-
-type ReactNode = React.ReactNode
 
 export default function CustomerDashboard({ user }: { user: SessionUser }) {
   const db = useDBSnapshot()
-  const [activeTab, setActiveTab] = useState<'create' | 'my' | 'completed' | 'confirm' | 'workers'>('create')
+  const [activeTab, setActiveTab] = useState<'create' | 'my' | 'completed' | 'confirm' | 'workers'>('my')
   const [workerCategory, setWorkerCategory] = useState<ServiceCategory | 'All'>('All')
   const [workerQuery, setWorkerQuery] = useState('')
   const [profileModalWorkerId, setProfileModalWorkerId] = useState<string | null>(null)
 
-  const myRequests = useMemo(() => {
-    return db.requests.filter((r: ServiceRequest) => r.customerId === user.id)
-  }, [db.requests, user.id])
-
-  const myActiveRequests = useMemo(() => {
-    return myRequests.filter((r) => r.status !== 'completed')
-  }, [myRequests])
-
-  const myCompletedRequests = useMemo(() => {
-    return myRequests.filter((r) => r.status === 'completed')
-  }, [myRequests])
-
-  const needsMyAction = useMemo(() => {
-    return myRequests.filter((r: ServiceRequest) =>
-      [
-        'pending_customer_confirmation',
-        'inspection_pending_customer_confirmation',
-        'inspection_completed_pending_customer_confirm',
-        'quote_pending_approval',
-        'work_pending_customer_confirmation',
-        'work_completed_pending_customer_confirm',
-      ].includes(r.status),
-    )
-  }, [myRequests])
-
+  const myRequests = useMemo(() => db.requests.filter((r: ServiceRequest) => r.customerId === user.id), [db.requests, user.id])
+  const myActiveRequests = useMemo(() => myRequests.filter((r) => r.status !== 'completed'), [myRequests])
+  const myCompletedRequests = useMemo(() => myRequests.filter((r) => r.status === 'completed'), [myRequests])
+  const needsMyAction = useMemo(() => myRequests.filter((r: ServiceRequest) =>
+    ['pending_customer_confirmation','inspection_pending_customer_confirmation','inspection_completed_pending_customer_confirm','quote_pending_approval','work_pending_customer_confirmation','work_completed_pending_customer_confirm'].includes(r.status)), [myRequests])
   const reviewsByRequest = useMemo(() => {
     const map = new Map<string, true>()
-    for (const r of db.reviews) {
-      if (r.customerId === user.id) map.set(r.requestId, true)
-    }
+    db.reviews.filter((r) => r.customerId === user.id).forEach((r) => map.set(r.requestId, true))
     return map
   }, [db.reviews, user.id])
-
   const workers = useMemo(() => {
     const q = workerQuery.trim().toLowerCase()
-    return db.workers
-      .filter((w) => (workerCategory === 'All' ? true : w.categories.includes(workerCategory)))
-      .filter((w) => {
-        if (!q) return true
-        return (
-          w.name.toLowerCase().includes(q) ||
-          w.categories.join(',').toLowerCase().includes(q) ||
-          w.skills.join(',').toLowerCase().includes(q) ||
-          (w.about ?? '').toLowerCase().includes(q)
-        )
-      })
-      .slice()
-      .sort((a, b) => (b.ratingAvg ?? 0) - (a.ratingAvg ?? 0))
+    return db.workers.filter((w) => (workerCategory === 'All' ? true : w.categories.includes(workerCategory))).filter((w) => !q || w.name.toLowerCase().includes(q) || w.categories.join(',').toLowerCase().includes(q) || w.skills.join(',').toLowerCase().includes(q) || (w.about ?? '').toLowerCase().includes(q)).sort((a, b) => (b.ratingAvg ?? 0) - (a.ratingAvg ?? 0))
   }, [db.workers, workerCategory, workerQuery])
 
+  const tabs = [
+    { id: 'my', label: 'My Requests', count: myActiveRequests.length, icon: Briefcase },
+    { id: 'create', label: 'New Request', count: null, icon: Plus },
+    { id: 'confirm', label: 'Needs Action', count: needsMyAction.length, icon: CheckCircle },
+    { id: 'workers', label: 'Find Workers', count: null, icon: Search },
+    { id: 'completed', label: 'Completed', count: myCompletedRequests.length, icon: CheckCircle },
+  ]
+
   return (
-    <div className="grid gap-4">
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
-        <div className="text-sm font-semibold">Customer Dashboard</div>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <button
-            className={`rounded-xl border px-3 py-2 text-sm ${
-              activeTab === 'create'
-                ? 'border-white/20 bg-white/10'
-                : 'border-white/10 hover:bg-white/5'
-            }`}
-            onClick={() => setActiveTab('create')}
-          >
-            New Request
-          </button>
-          <button
-            className={`rounded-xl border px-3 py-2 text-sm ${
-              activeTab === 'my'
-                ? 'border-white/20 bg-white/10'
-                : 'border-white/10 hover:bg-white/5'
-            }`}
-            onClick={() => setActiveTab('my')}
-          >
-            My Requests
-          </button>
-          <button
-            className={`rounded-xl border px-3 py-2 text-sm ${
-              activeTab === 'completed'
-                ? 'border-white/20 bg-white/10'
-                : 'border-white/10 hover:bg-white/5'
-            }`}
-            onClick={() => setActiveTab('completed')}
-          >
-            Completed ({myCompletedRequests.length})
-          </button>
-          <button
-            className={`rounded-xl border px-3 py-2 text-sm ${
-              activeTab === 'confirm'
-                ? 'border-white/20 bg-white/10'
-                : 'border-white/10 hover:bg-white/5'
-            }`}
-            onClick={() => setActiveTab('confirm')}
-          >
-            Needs Action ({needsMyAction.length})
-          </button>
-          <button
-            className={`rounded-xl border px-3 py-2 text-sm ${
-              activeTab === 'workers'
-                ? 'border-white/20 bg-white/10'
-                : 'border-white/10 hover:bg-white/5'
-            }`}
-            onClick={() => setActiveTab('workers')}
-          >
-            Find Workers
-          </button>
-        </div>
-      </div>
-
-      {activeTab === 'create' ? (
-        <ServiceRequestForm
-          onSubmit={(v) => {
-            createRequest({ customerId: user.id, ...v })
-            setActiveTab('my')
-          }}
-        />
-      ) : null}
-
-      {activeTab === 'workers' ? (
-        <div className="grid gap-3">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white">
-            <div className="grid gap-3 md:grid-cols-3">
+    <div className="min-h-screen" style={{ background: THEME.bg }}>
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="sticky top-0 z-10 backdrop-blur-xl border-b border-gray-200/50" style={{ background: 'rgba(255,255,255,0.9)' }}>
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: THEME.primary }}>
+                <User className="w-6 h-6 text-white" />
+              </div>
               <div>
-                <label className="mb-1 block text-xs text-white/70">Category</label>
-                <select
-                  className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 py-2 text-sm text-white"
-                  value={workerCategory}
-                  onChange={(e) => setWorkerCategory(e.target.value as ServiceCategory | 'All')}
-                >
-                  {CATEGORIES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="md:col-span-2">
-                <label className="mb-1 block text-xs text-white/70">Search</label>
-                <input
-                  className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 py-2 text-sm text-white"
-                  value={workerQuery}
-                  onChange={(e) => setWorkerQuery(e.target.value)}
-                  placeholder="Name, skill, category"
-                />
+                <h1 className="text-xl font-bold text-gray-800">Welcome back, {user.name}</h1>
+                <p className="text-sm text-gray-500">Customer Dashboard</p>
               </div>
             </div>
-          </div>
-
-          {workers.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white/70">
-              No workers found.
-            </div>
-          ) : (
-            workers.map((w) => <WorkerCard key={w.id} worker={w} onShowProfile={setProfileModalWorkerId} />)
-          )}
-
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white/70">
-            Note: all workers can accept any job. Categories/skills are used only for recommendations. Click “View full profile” on any worker to see all details.
+            <span className="px-3 py-1 rounded-full text-sm font-medium" style={{ background: THEME.primaryLight, color: THEME.primaryDark }}>{myActiveRequests.length} Active</span>
           </div>
         </div>
-      ) : null}
+      </motion.div>
 
-      {activeTab === 'my' ? (
-        <div className="grid gap-3">
-          {myActiveRequests.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white/70">
-              No requests yet.
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-6">
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            {tabs.map((tab) => {
+              const Icon = tab.icon
+              const isActive = activeTab === tab.id
+              return (
+                <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex items-center gap-2 px-4 py-3 rounded-2xl font-medium transition-all whitespace-nowrap ${isActive ? 'shadow-lg text-white' : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'}`} style={isActive ? { background: THEME.primary } : {}}>
+                  <Icon className="w-4 h-4" />
+                  <span>{tab.label}</span>
+                  {tab.count !== null && tab.count > 0 && <span className={`px-2 py-0.5 rounded-full text-xs ${isActive ? 'bg-white/20' : 'bg-teal-100 text-teal-700'}`}>{tab.count}</span>}
+                </button>
+              )
+            })}
+          </div>
+        </motion.div>
+
+        <motion.div key={activeTab} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3 }}>
+          {activeTab === 'create' && (
+            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+              <div className="p-6 border-b border-gray-100" style={{ background: THEME.gray50 }}>
+                <h2 className="text-xl font-bold text-gray-800">Create New Request</h2>
+                <p className="text-gray-500">Describe your service needs</p>
+              </div>
+              <div className="p-6">
+                <ServiceRequestForm onSubmit={(v) => { createRequest({ customerId: user.id, ...v }); setActiveTab('my') }} />
+              </div>
             </div>
-          ) : (
-            myActiveRequests.map((r: ServiceRequest) => (
-              <CustomerRequestCard
-                key={r.id}
-                req={r}
-                userId={user.id}
-                hasReviewed={reviewsByRequest.has(r.id)}
-                onShowWorkerProfile={setProfileModalWorkerId}
-              />
-            ))
           )}
-        </div>
-      ) : null}
 
-      {activeTab === 'completed' ? (
-        <div className="grid gap-3">
-          {myCompletedRequests.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white/70">
-              No completed jobs yet.
+          {activeTab === 'workers' && (
+            <div className="space-y-4">
+              <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <select className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500" value={workerCategory} onChange={(e) => setWorkerCategory(e.target.value as ServiceCategory | 'All')}>
+                      {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Search Workers</label>
+                    <div className="relative">
+                      <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                      <input className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-12 pr-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500" value={workerQuery} onChange={(e) => setWorkerQuery(e.target.value)} placeholder="Name, skill, category..." />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {workers.length === 0 ? (
+                <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-12 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4"><Search className="w-8 h-8 text-gray-400" /></div>
+                  <h3 className="text-lg font-semibold text-gray-800">No workers found</h3>
+                  <p className="text-gray-500 mt-1">Try adjusting your search or filters</p>
+                </div>
+              ) : (
+                <div className="grid gap-4">{workers.map((w) => <WorkerCard key={w.id} worker={w} onShowProfile={setProfileModalWorkerId} />)}</div>
+              )}
             </div>
-          ) : (
-            myCompletedRequests.map((r: ServiceRequest) => (
-              <CustomerRequestCard
-                key={r.id}
-                req={r}
-                userId={user.id}
-                hasReviewed={reviewsByRequest.has(r.id)}
-                onShowWorkerProfile={setProfileModalWorkerId}
-              />
-            ))
           )}
-        </div>
-      ) : null}
 
-      {activeTab === 'confirm' ? (
-        <div className="grid gap-3">
-          {needsMyAction.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white/70">
-              Nothing to confirm right now.
+          {activeTab === 'my' && (
+            <div className="space-y-4">
+              {myActiveRequests.length === 0 ? (
+                <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-12 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center mx-auto mb-4"><Briefcase className="w-8 h-8" style={{ color: THEME.primary }} /></div>
+                  <h3 className="text-lg font-semibold text-gray-800">No active requests</h3>
+                  <p className="text-gray-500 mt-1 mb-4">Create a new request to get started</p>
+                  <button onClick={() => setActiveTab('create')} className="px-6 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Create Request</button>
+                </div>
+              ) : myActiveRequests.map((r: ServiceRequest) => <CustomerRequestCard key={r.id} req={r} userId={user.id} hasReviewed={reviewsByRequest.has(r.id)} onShowWorkerProfile={setProfileModalWorkerId} />)}
             </div>
-          ) : (
-            needsMyAction.map((r: ServiceRequest) => (
-              <CustomerActionCard key={r.id} req={r} customerId={user.id} onShowWorkerProfile={setProfileModalWorkerId} />
-            ))
           )}
-        </div>
-      ) : null}
 
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white/70">
-        Tip: open a second browser window and sign in as a Worker to progress the workflow.
+          {activeTab === 'completed' && (
+            <div className="space-y-4">
+              {myCompletedRequests.length === 0 ? (
+                <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-12 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4"><CheckCircle className="w-8 h-8 text-gray-400" /></div>
+                  <h3 className="text-lg font-semibold text-gray-800">No completed jobs</h3>
+                  <p className="text-gray-500 mt-1">Your completed requests will appear here</p>
+                </div>
+              ) : myCompletedRequests.map((r: ServiceRequest) => <CustomerRequestCard key={r.id} req={r} userId={user.id} hasReviewed={reviewsByRequest.has(r.id)} onShowWorkerProfile={setProfileModalWorkerId} />)}
+            </div>
+          )}
+
+          {activeTab === 'confirm' && (
+            <div className="space-y-4">
+              {needsMyAction.length === 0 ? (
+                <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-12 text-center">
+                  <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto mb-4"><CheckCircle className="w-8 h-8 text-green-500" /></div>
+                  <h3 className="text-lg font-semibold text-gray-800">All caught up!</h3>
+                  <p className="text-gray-500 mt-1">Nothing needs your attention right now</p>
+                </div>
+              ) : needsMyAction.map((r: ServiceRequest) => <CustomerActionCard key={r.id} req={r} customerId={user.id} onShowWorkerProfile={setProfileModalWorkerId} />)}
+            </div>
+          )}
+        </motion.div>
       </div>
 
       {profileModalWorkerId && <WorkerProfileModal workerId={profileModalWorkerId} onClose={() => setProfileModalWorkerId(null)} />}
@@ -270,357 +195,169 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
   )
 }
 
-function CardShell({ children }: { children: ReactNode }) {
-  return <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-white">{children}</div>
+function CardShell({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <div className={`bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden ${className}`}>{children}</div>
 }
 
-function CustomerRequestCard({
-  req,
-  userId,
-  hasReviewed,
-  onShowWorkerProfile,
-}: {
-  req: ServiceRequest
-  userId: string
-  hasReviewed: boolean
-  onShowWorkerProfile: (id: string) => void
-}) {
+function StatusBadge({ status }: { status: string }) {
+  const statusColors: Record<string, { bg: string; text: string }> = {
+    'open': { bg: 'bg-blue-100', text: 'text-blue-700' },
+    'pending_customer_confirmation': { bg: 'bg-amber-100', text: 'text-amber-700' },
+    'completed': { bg: 'bg-green-100', text: 'text-green-700' },
+  }
+  const colors = statusColors[status] || { bg: 'bg-gray-100', text: 'text-gray-700' }
+  return <span className={`px-3 py-1 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}>{statusLabel(status)}</span>
+}
+
+function CustomerRequestCard({ req, userId, hasReviewed, onShowWorkerProfile }: any) {
   const db = useDBSnapshot()
   const [rating, setRating] = useState<1 | 2 | 3 | 4 | 5>(5)
   const [comment, setComment] = useState('')
-
-  const interestedWorkers = useMemo(() => {
-    const ids = req.interestedWorkerIds ?? []
-    return ids
-      .map((id) => db.workers.find((w) => w.id === id))
-      .filter(Boolean) as WorkerProfile[]
-  }, [db.workers, req.interestedWorkerIds])
-
-  const assignedWorker = useMemo(() => {
-    if (!req.acceptedWorkerId) return null
-    return db.workers.find((w) => w.id === req.acceptedWorkerId)
-  }, [db.workers, req.acceptedWorkerId])
-
-  const offers = useMemo(() => {
-    const all = req.quoteOffers ?? []
-    return all
-      .slice()
-      .sort((a, b) => a.amount - b.amount)
-      .map((o) => ({
-        ...o,
-        worker: db.workers.find((w) => w.id === o.workerId),
-      }))
-  }, [db.workers, req.quoteOffers])
+  const interestedWorkers = useMemo(() => (req.interestedWorkerIds ?? []).map((id: string) => db.workers.find((w) => w.id === id)).filter(Boolean) as WorkerProfile[], [db.workers, req.interestedWorkerIds])
+  const assignedWorker = useMemo(() => req.acceptedWorkerId ? db.workers.find((w) => w.id === req.acceptedWorkerId) : null, [db.workers, req.acceptedWorkerId])
+  const offers = useMemo(() => (req.quoteOffers ?? []).slice().sort((a: any, b: any) => a.amount - b.amount), [req.quoteOffers])
 
   return (
     <CardShell>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold">{req.title}</div>
-          <div className="mt-1 text-xs text-white/70">
-            {req.category} • MVR {req.budget} • {req.urgency} • {req.location}
-          </div>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80">
-          {statusLabel(req.status)}
-        </div>
-      </div>
-
-      <div className="mt-3 text-sm text-white/80">{req.description}</div>
-
-      {assignedWorker && (
-        <div className="mt-3 rounded-xl border border-white/10 bg-black/10 p-3">
-          <div className="text-sm font-semibold text-white/80">Assigned Worker</div>
-          <div className="mt-1 text-sm">{assignedWorker.name}</div>
-          <div className="mt-1 text-xs text-white/60">
-            Rating: {assignedWorker.ratingAvg.toFixed(1)} ({assignedWorker.ratingCount}) • Jobs done: {assignedWorker.jobsDone}
-          </div>
-          <div className="mt-2 grid gap-1 text-xs text-white/70 md:grid-cols-2">
-            <div>Phone: {assignedWorker.phone ?? '-'}</div>
-            <div>WhatsApp: {assignedWorker.whatsapp ?? '-'}</div>
-            <div>Viber: {assignedWorker.viber ?? '-'}</div>
-            <div>Email: {assignedWorker.email ?? '-'}</div>
-          </div>
-          <button
-            className="mt-2 w-full rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black hover:bg-white/90 sm:w-auto"
-            onClick={() => onShowWorkerProfile(assignedWorker.id)}
-          >
-            View full profile
-          </button>
-        </div>
-      )}
-
-      <div className="mt-3 grid gap-2 text-xs text-white/70 md:grid-cols-2">
-        <div>Accepted worker: {req.acceptedWorkerId ?? '-'}</div>
-        <div>Inspection: {formatIso(req.inspection?.scheduledFor)}</div>
-        <div>Quote: {req.quote?.amount ? `MVR ${req.quote.amount}` : '-'}</div>
-        <div>Work: {formatIso(req.work?.scheduledFor)}</div>
-      </div>
-
-      {req.status === 'open' ? (
-        <div className="mt-4 grid gap-3">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-            <div className="text-sm font-semibold">Interested workers ({interestedWorkers.length})</div>
-            {interestedWorkers.length ? (
-              <div className="mt-2 grid gap-2">
-                {interestedWorkers.map((w) => (
-                  <div key={w.id} className="flex flex-col gap-2 rounded-xl border border-white/10 bg-black/10 p-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="text-sm font-semibold">{w.name}</div>
-                      <div className="mt-1 text-xs text-white/70">
-                        {w.categories.join(', ')} • {w.ratingAvg.toFixed(1)} ({w.ratingCount})
-                      </div>
-                      <div className="mt-1 text-xs text-white/60">
-                        Phone: {w.phone ?? '-'} • WhatsApp: {w.whatsapp ?? '-'}
-                      </div>
-                    </div>
-                    <button
-                      className="w-full rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black hover:bg-white/90 sm:w-auto"
-                      onClick={() => selectWorker({ requestId: req.id, customerId: userId, workerId: w.id })}
-                    >
-                      Select for inspection
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-2 text-xs text-white/60">No workers yet. Ask workers to open the app and click “I’m Interested”.</div>
-            )}
-          </div>
-
-          <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-            <div className="text-sm font-semibold">Quotations ({offers.length})</div>
-            {offers.length ? (
-              <div className="mt-2 grid gap-2">
-                {offers.map((o) => (
-                  <div key={o.workerId} className="flex flex-col gap-2 rounded-xl border border-white/10 bg-black/10 p-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="text-sm font-semibold">{o.worker?.name ?? o.workerId}</div>
-                      <div className="mt-1 text-xs text-white/70">MVR {o.amount}</div>
-                      {o.notes ? <div className="mt-1 text-xs text-white/60">{o.notes}</div> : null}
-                    </div>
-                    <button
-                      className="w-full rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black hover:bg-white/90 sm:w-auto"
-                      onClick={() => chooseOffer({ requestId: req.id, customerId: userId, workerId: o.workerId })}
-                    >
-                      Choose this quotation
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="mt-2 text-xs text-white/60">No quotations yet.</div>
-            )}
-          </div>
-        </div>
-      ) : null}
-
-      {req.status === 'pending_customer_confirmation' ? (
-        <button
-          className="mt-4 w-full rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black hover:bg-white/90 sm:w-auto"
-          onClick={() => selectWorker({ requestId: req.id, customerId: userId, workerId: req.acceptedWorkerId! })}
-        >
-          Confirm Worker
-        </button>
-      ) : null}
-
-      {req.status === 'completed' ? (
-        <div className="mt-4 rounded-xl border border-white/10 bg-white/5 p-3">
-          {hasReviewed ? (
-            <div className="text-sm text-white/70">Thanks! You already rated this job.</div>
-          ) : (
-            <div className="grid gap-2">
-              <div className="text-sm font-semibold">Rate this worker</div>
-              <div className="grid gap-2 md:grid-cols-3">
-                <div>
-                  <label className="mb-1 block text-xs text-white/70">Rating</label>
-                  <select
-                    className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 py-2 text-sm text-white"
-                    value={rating}
-                    onChange={(e) => setRating(Number(e.target.value) as 1 | 2 | 3 | 4 | 5)}
-                  >
-                    {[5, 4, 3, 2, 1].map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="md:col-span-2">
-                  <label className="mb-1 block text-xs text-white/70">Comment (optional)</label>
-                  <input
-                    className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 py-2 text-sm text-white"
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="How was the service?"
-                  />
-                </div>
-              </div>
-              <button
-                className="w-full rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black hover:bg-white/90 sm:w-auto"
-                onClick={() => addReview({ requestId: req.id, customerId: userId, rating, comment: comment.trim() || undefined })}
-              >
-                Submit Rating
-              </button>
+      <div className="p-6 border-b border-gray-100" style={{ background: THEME.gray50 }}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-gray-800 mb-1">{req.title}</h3>
+            <div className="flex items-center gap-3 text-sm text-gray-500">
+              <span className="flex items-center gap-1"><Wrench className="w-4 h-4" style={{ color: THEME.primary }} />{req.category}</span>
+              <span className="flex items-center gap-1"><DollarSign className="w-4 h-4 text-gray-400" />MVR {req.budget}</span>
+              <span className="flex items-center gap-1"><MapPin className="w-4 h-4 text-gray-400" />{req.location}</span>
             </div>
-          )}
+          </div>
+          <StatusBadge status={req.status} />
         </div>
-      ) : null}
+      </div>
+      <div className="p-6">
+        <p className="text-gray-600 mb-4">{req.description}</p>
+        <div className="flex items-center gap-4 mb-6 text-sm">
+          <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-400" /><span className="text-gray-600">Inspection: {formatIso(req.inspection?.scheduledFor)}</span></div>
+          <div className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-gray-400" /><span className="text-gray-600">Quote: {req.quote?.amount ? `MVR ${req.quote.amount}` : '-'}</span></div>
+        </div>
+        {assignedWorker && (
+          <div className="mb-6 p-4 rounded-2xl border border-teal-100" style={{ background: THEME.bg }}>
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-teal-500 flex items-center justify-center"><User className="w-6 h-6 text-white" /></div>
+                <div>
+                  <div className="font-semibold text-gray-800">{assignedWorker.name}</div>
+                  <div className="flex items-center gap-2 text-sm text-gray-500"><Star className="w-4 h-4 text-amber-400 fill-current" /><span>{assignedWorker.ratingAvg.toFixed(1)} ({assignedWorker.ratingCount})</span><span>�</span><span>{assignedWorker.jobsDone} jobs</span></div>
+                </div>
+              </div>
+              <button onClick={() => onShowWorkerProfile(assignedWorker.id)} className="px-4 py-2 rounded-xl text-sm font-medium border border-teal-200 hover:bg-teal-50 transition-colors" style={{ color: THEME.primary }}>View Profile</button>
+            </div>
+          </div>
+        )}
+        {req.status === 'open' && interestedWorkers.length > 0 && (
+          <div className="mb-6">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Interested Workers ({interestedWorkers.length})</h4>
+            <div className="space-y-2">
+              {interestedWorkers.slice(0, 3).map((w) => (
+                <div key={w.id} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-gray-50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center"><User className="w-5 h-5" style={{ color: THEME.primary }} /></div>
+                    <div><div className="font-medium text-gray-800">{w.name}</div><div className="text-xs text-gray-500">{w.categories.slice(0, 2).join(', ')}</div></div>
+                  </div>
+                  <button onClick={() => selectWorker({ requestId: req.id, customerId: userId, workerId: w.id })} className="px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-md hover:shadow-lg transition-all" style={{ background: THEME.primary }}>Select</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {req.status === 'open' && offers.length > 0 && (
+          <div className="mb-6">
+            <h4 className="text-sm font-semibold text-gray-700 mb-3">Quotations ({offers.length})</h4>
+            <div className="space-y-2">
+              {offers.slice(0, 3).map((o: any) => (
+                <div key={o.workerId} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 bg-gray-50">
+                  <div><div className="font-medium text-gray-800">{o.worker?.name ?? o.workerId}</div><div className="text-lg font-bold" style={{ color: THEME.primary }}>MVR {o.amount}</div>{o.notes && <div className="text-xs text-gray-500">{o.notes}</div>}</div>
+                  <button onClick={() => chooseOffer({ requestId: req.id, customerId: userId, workerId: o.workerId })} className="px-4 py-2 rounded-xl text-sm font-semibold text-white shadow-md hover:shadow-lg transition-all" style={{ background: THEME.primary }}>Accept</button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {req.status === 'completed' && !hasReviewed && (
+          <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50">
+            <h4 className="text-sm font-semibold text-gray-800 mb-3">Rate this worker</h4>
+            <div className="grid gap-3">
+              <select className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500" value={rating} onChange={(e) => setRating(Number(e.target.value) as 1 | 2 | 3 | 4 | 5)}>{[5, 4, 3, 2, 1].map((n) => <option key={n} value={n}>{n} Star{n > 1 ? 's' : ''}</option>)}</select>
+              <input className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-teal-500" value={comment} onChange={(e) => setComment(e.target.value)} placeholder="How was the service? (optional)" />
+              <button onClick={() => addReview({ requestId: req.id, customerId: userId, rating, comment: comment.trim() || undefined })} className="w-full py-3 rounded-xl font-semibold text-white shadow-lg" style={{ background: THEME.primary }}>Submit Rating</button>
+            </div>
+          </div>
+        )}
+        {hasReviewed && <div className="flex items-center gap-2 text-green-600"><CheckCircle className="w-5 h-5" /><span className="font-medium">Thank you! You rated this job.</span></div>}
+      </div>
     </CardShell>
   )
 }
 
 function WorkerCard({ worker, onShowProfile }: { worker: WorkerProfile; onShowProfile: (id: string) => void }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 text-white">
-      {worker.promoPosterUrl ? (
-        <img
-          src={worker.promoPosterUrl}
-          alt=""
-          className="h-40 w-full object-cover"
-          loading="lazy"
-        />
-      ) : null}
-
-      <div className="p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold">{worker.name}</div>
-            <div className="mt-1 text-xs text-white/70">
-              {worker.categories.join(', ')}
+    <CardShell className="hover:shadow-xl transition-shadow">
+      {worker.promoPosterUrl && <img src={worker.promoPosterUrl} alt="" className="h-48 w-full object-cover" loading="lazy" />}
+      <div className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: THEME.primary }}><User className="w-7 h-7 text-white" /></div>
+            <div>
+              <h3 className="font-bold text-gray-800">{worker.name}</h3>
+              <div className="flex items-center gap-1 text-sm text-gray-500"><Star className="w-4 h-4 text-amber-400 fill-current" /><span className="font-medium text-gray-700">{worker.ratingAvg.toFixed(1)}</span><span>({worker.ratingCount})</span></div>
             </div>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80">
-            {worker.ratingAvg.toFixed(1)} ({worker.ratingCount})
-          </div>
+          <div className="flex flex-wrap gap-1">{worker.categories.slice(0, 2).map((cat) => <span key={cat} className="px-2 py-1 rounded-lg text-xs font-medium border" style={{ background: THEME.primaryLight, color: THEME.primaryDark, borderColor: THEME.primary }}>{cat}</span>)}</div>
         </div>
-
-        {worker.about ? <div className="mt-3 text-sm text-white/80">{worker.about}</div> : null}
-
-        {worker.skills.length ? (
-          <div className="mt-3 text-xs text-white/70">Skills: {worker.skills.join(', ')}</div>
-        ) : null}
-
-        <div className="mt-3 grid gap-1 text-xs text-white/70 md:grid-cols-2">
-          <div>Phone: {worker.phone ?? '-'}</div>
-          <div>WhatsApp: {worker.whatsapp ?? '-'}</div>
-          <div>Viber: {worker.viber ?? '-'}</div>
-          <div>Email: {worker.email ?? '-'}</div>
+        {worker.about && <p className="text-gray-600 text-sm mb-4 line-clamp-2">{worker.about}</p>}
+        {worker.skills.length > 0 && <div className="flex flex-wrap gap-2 mb-4">{worker.skills.slice(0, 4).map((skill) => <span key={skill} className="px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-600">{skill}</span>)}{worker.skills.length > 4 && <span className="px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-600">+{worker.skills.length - 4}</span>}</div>}
+        <div className="grid grid-cols-2 gap-2 mb-4 text-sm">
+          {worker.phone && <div className="flex items-center gap-2 text-gray-600"><div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center"><span className="text-green-600 text-xs">??</span></div><span className="truncate">{worker.phone}</span></div>}
+          {worker.whatsapp && <div className="flex items-center gap-2 text-gray-600"><div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center"><span className="text-green-600 text-xs">??</span></div><span className="truncate">{worker.whatsapp}</span></div>}
         </div>
-
-        <button
-          className="mt-3 w-full rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black hover:bg-white/90"
-          onClick={() => onShowProfile(worker.id)}
-        >
-          View full profile
-        </button>
+        <button onClick={() => onShowProfile(worker.id)} className="w-full py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>View Full Profile</button>
       </div>
-    </div>
+    </CardShell>
   )
 }
 
-function CustomerActionCard({ req, customerId, onShowWorkerProfile }: { req: ServiceRequest; customerId: string; onShowWorkerProfile: (id: string) => void }) {
+function CustomerActionCard({ req, customerId, onShowWorkerProfile }: any) {
   const db = useDBSnapshot()
-  const assignedWorker = useMemo(() => {
-    if (!req.acceptedWorkerId) return null
-    return db.workers.find((w) => w.id === req.acceptedWorkerId)
-  }, [db.workers, req.acceptedWorkerId])
+  const assignedWorker = useMemo(() => req.acceptedWorkerId ? db.workers.find((w) => w.id === req.acceptedWorkerId) : null, [db.workers, req.acceptedWorkerId])
+  const actions: Record<string, { label: string; action: () => void }> = {
+    'pending_customer_confirmation': { label: 'Confirm Worker', action: () => selectWorker({ requestId: req.id, customerId, workerId: req.acceptedWorkerId! }) },
+    'inspection_pending_customer_confirmation': { label: 'Confirm Inspection', action: () => customerConfirmInspection({ requestId: req.id, customerId }) },
+    'inspection_completed_pending_customer_confirm': { label: 'Confirm Inspection Completed', action: () => customerConfirmInspectionCompleted({ requestId: req.id, customerId }) },
+    'quote_pending_approval': { label: 'Approve Quote (MVR ' + (req.quote?.amount ?? '-') + ')', action: () => customerConfirmWorkSchedule({ requestId: req.id, customerId }) },
+    'work_pending_customer_confirmation': { label: 'Confirm Work Schedule', action: () => customerConfirmWorkSchedule({ requestId: req.id, customerId }) },
+    'work_completed_pending_customer_confirm': { label: 'Confirm Work Completed', action: () => customerConfirmWorkCompleted({ requestId: req.id, customerId }) },
+  }
+  const action = actions[req.status]
+  if (!action) return null
 
   return (
-    <CardShell>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold">{req.title}</div>
-          <div className="mt-1 text-xs text-white/70">{req.category}</div>
+    <CardShell className="border-l-4" style={{ borderLeftColor: THEME.primary }}>
+      <div className="p-6">
+        <div className="flex items-start justify-between mb-4">
+          <div><h3 className="text-lg font-bold text-gray-800 mb-1">{req.title}</h3><StatusBadge status={req.status} /></div>
+          <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center"><Clock className="w-6 h-6 text-amber-500" /></div>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80">
-          {statusLabel(req.status)}
-        </div>
+        <p className="text-gray-600 mb-4">{req.description}</p>
+        {assignedWorker && (
+          <div className="mb-4 p-4 rounded-2xl border border-gray-100 bg-gray-50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center"><User className="w-5 h-5" style={{ color: THEME.primary }} /></div>
+              <div><div className="font-medium text-gray-800">{assignedWorker.name}</div><div className="text-sm text-gray-500">? {assignedWorker.ratingAvg.toFixed(1)} � {assignedWorker.jobsDone} jobs</div></div>
+              <button onClick={() => onShowWorkerProfile(assignedWorker.id)} className="ml-auto text-sm font-medium" style={{ color: THEME.primary }}>View</button>
+            </div>
+          </div>
+        )}
+        {req.quote && <div className="mb-4 p-3 rounded-xl bg-teal-50 border border-teal-100"><div className="text-sm text-gray-600">Quote Amount</div><div className="text-2xl font-bold" style={{ color: THEME.primary }}>MVR {req.quote.amount}</div>{req.quote.notes && <div className="text-sm text-gray-500 mt-1">{req.quote.notes}</div>}</div>}
+        <button onClick={action.action} className="w-full py-4 rounded-2xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>{action.label}</button>
       </div>
-
-      <div className="mt-3 text-sm text-white/80">{req.description}</div>
-
-      {assignedWorker && (
-        <div className="mt-3 rounded-xl border border-white/10 bg-black/10 p-3">
-          <div className="text-sm font-semibold text-white/80">Assigned Worker</div>
-          <div className="mt-1 text-sm">{assignedWorker.name}</div>
-          <div className="mt-1 text-xs text-white/60">
-            Rating: {assignedWorker.ratingAvg.toFixed(1)} ({assignedWorker.ratingCount}) • Jobs done: {assignedWorker.jobsDone}
-          </div>
-          <div className="mt-2 grid gap-1 text-xs text-white/70 md:grid-cols-2">
-            <div>Phone: {assignedWorker.phone ?? '-'}</div>
-            <div>WhatsApp: {assignedWorker.whatsapp ?? '-'}</div>
-            <div>Viber: {assignedWorker.viber ?? '-'}</div>
-            <div>Email: {assignedWorker.email ?? '-'}</div>
-          </div>
-          <button
-            className="mt-2 w-full rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black hover:bg-white/90 sm:w-auto"
-            onClick={() => onShowWorkerProfile(assignedWorker.id)}
-          >
-            View full profile
-          </button>
-        </div>
-      )}
-
-      {req.status === 'pending_customer_confirmation' ? (
-        <button
-          className="mt-4 w-full rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black hover:bg-white/90 sm:w-auto"
-          onClick={() => selectWorker({ requestId: req.id, customerId, workerId: req.acceptedWorkerId! })}
-        >
-          Confirm Worker
-        </button>
-      ) : null}
-
-      {req.status === 'inspection_pending_customer_confirmation' ? (
-        <button
-          className="mt-4 w-full rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black hover:bg-white/90 sm:w-auto"
-          onClick={() => customerConfirmInspection({ requestId: req.id, customerId })}
-        >
-          Confirm Inspection
-        </button>
-      ) : null}
-
-      {req.status === 'inspection_completed_pending_customer_confirm' ? (
-        <button
-          className="mt-4 w-full rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black hover:bg-white/90 sm:w-auto"
-          onClick={() => customerConfirmInspectionCompleted({ requestId: req.id, customerId })}
-        >
-          Confirm Inspection Completed
-        </button>
-      ) : null}
-
-      {req.status === 'quote_pending_approval' ? (
-        <div className="mt-4 grid gap-2">
-          <div className="text-sm text-white/80">
-            Quote: <span className="font-semibold">MVR {req.quote?.amount ?? '-'}</span>
-          </div>
-          {req.quote?.notes ? <div className="text-xs text-white/60">{req.quote.notes}</div> : null}
-          <button
-            className="w-full rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black hover:bg-white/90 sm:w-auto"
-            onClick={() => customerConfirmWorkSchedule({ requestId: req.id, customerId })}
-          >
-            Approve Quote
-          </button>
-        </div>
-      ) : null}
-
-      {req.status === 'work_pending_customer_confirmation' ? (
-        <button
-          className="mt-4 w-full rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black hover:bg-white/90 sm:w-auto"
-          onClick={() => customerConfirmWorkSchedule({ requestId: req.id, customerId })}
-        >
-          Confirm Work Schedule
-        </button>
-      ) : null}
-
-      {req.status === 'work_completed_pending_customer_confirm' ? (
-        <button
-          className="mt-4 w-full rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black hover:bg-white/90 sm:w-auto"
-          onClick={() => customerConfirmWorkCompleted({ requestId: req.id, customerId })}
-        >
-          Confirm Work Completed
-        </button>
-      ) : null}
     </CardShell>
   )
 }
