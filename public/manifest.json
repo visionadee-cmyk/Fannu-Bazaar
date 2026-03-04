@@ -1,0 +1,22 @@
+{
+  "name": "Fannu Bazaar",
+  "short_name": "FannuBazaar",
+  "description": "Service marketplace connecting customers with skilled workers",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1e3a5f",
+  "theme_color": "#1e3a5f",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["business", "lifestyle", "productivity"],
+  "dir": "ltr"
+}
