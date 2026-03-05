@@ -13,6 +13,7 @@ import {
 import { useDBSnapshot } from '../lib/hooks'
 import type { ServiceCategory, ServiceRequest, SessionUser } from '../lib/types'
 import WorkerProfileForm from './WorkerProfileForm'
+import Illustration from './Illustration'
 import {
   Search, Briefcase, CheckCircle, Clock, Star, User,
   Wrench, DollarSign, Calendar, MapPin
@@ -82,6 +83,14 @@ export default function WorkerDashboard({ user }: { user: SessionUser }) {
             </div>
             {worker && (
               <div className="flex items-center gap-3">
+                <div className="hidden md:block">
+                  <Illustration
+                    filename="Construction%20worker-bro.svg"
+                    alt="Worker dashboard illustration"
+                    className="w-28 h-16 object-contain"
+                    loading="eager"
+                  />
+                </div>
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium" style={{ background: THEME.primaryLight, color: THEME.primaryDark }}>
                   <Star className="w-4 h-4 fill-current" />
                   <span className="font-semibold">{worker.ratingAvg.toFixed(1)}</span>
@@ -137,9 +146,11 @@ export default function WorkerDashboard({ user }: { user: SessionUser }) {
               {/* Jobs List */}
               {openRequests.length === 0 ? (
                 <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-12 text-center">
-                  <div className="w-20 h-20 rounded-3xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
-                    <Search className="w-10 h-10 text-gray-400" />
-                  </div>
+                  <Illustration
+                    filename="Job%20hunt-bro.svg"
+                    alt="No requests found"
+                    className="w-56 h-40 object-contain mx-auto mb-6"
+                  />
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">No requests found</h3>
                   <p className="text-gray-500">Try adjusting your search or category filter</p>
                 </div>
@@ -155,9 +166,11 @@ export default function WorkerDashboard({ user }: { user: SessionUser }) {
             <div className="space-y-4">
               {myActiveAssigned.length === 0 ? (
                 <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-12 text-center">
-                  <div className="w-20 h-20 rounded-3xl bg-green-100 flex items-center justify-center mx-auto mb-6">
-                    <Briefcase className="w-10 h-10 text-green-600" />
-                  </div>
+                  <Illustration
+                    filename="Maintenance-bro.svg"
+                    alt="No assigned jobs"
+                    className="w-56 h-40 object-contain mx-auto mb-6"
+                  />
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">No assigned jobs</h3>
                   <p className="text-gray-500 mb-6">Browse open requests and express interest</p>
                   <button onClick={() => setActiveTab('browse')} className="px-8 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Browse Requests</button>
@@ -172,9 +185,11 @@ export default function WorkerDashboard({ user }: { user: SessionUser }) {
             <div className="space-y-4">
               {myCompletedAssigned.length === 0 ? (
                 <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-12 text-center">
-                  <div className="w-20 h-20 rounded-3xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
-                    <CheckCircle className="w-10 h-10 text-gray-400" />
-                  </div>
+                  <Illustration
+                    filename="Work%20in%20progress-pana.svg"
+                    alt="No completed jobs yet"
+                    className="w-56 h-40 object-contain mx-auto mb-6"
+                  />
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">No completed jobs yet</h3>
                   <p className="text-gray-500">Your completed jobs will appear here</p>
                 </div>
@@ -188,9 +203,11 @@ export default function WorkerDashboard({ user }: { user: SessionUser }) {
             <div className="space-y-4">
               {needsMyAction.length === 0 ? (
                 <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-12 text-center">
-                  <div className="w-20 h-20 rounded-3xl bg-green-100 flex items-center justify-center mx-auto mb-6">
-                    <CheckCircle className="w-10 h-10 text-green-600" />
-                  </div>
+                  <Illustration
+                    filename="Processing-cuate.svg"
+                    alt="All caught up"
+                    className="w-56 h-40 object-contain mx-auto mb-6"
+                  />
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">All caught up!</h3>
                   <p className="text-gray-500">No pending actions at the moment</p>
                 </div>

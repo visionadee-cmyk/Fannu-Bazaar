@@ -11,6 +11,7 @@ import {
 } from '../lib/db'
 import { useDBSnapshot } from '../lib/hooks'
 import WorkerProfileModal from './WorkerProfileModal'
+import Illustration from './Illustration'
 import type { ServiceCategory, ServiceRequest, SessionUser, WorkerProfile } from '../lib/types'
 import {
   Search, Briefcase, CheckCircle, Plus, Star, User,
@@ -86,9 +87,19 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
                 <p className="text-sm text-gray-500">Customer Dashboard</p>
               </div>
             </div>
-            <span className="px-4 py-2 rounded-full text-sm font-medium bg-green-100 text-green-700">
-              {myActiveRequests.length} Active Request{myActiveRequests.length !== 1 ? 's' : ''}
-            </span>
+            <div className="flex items-center gap-4">
+              <div className="hidden md:block">
+                <Illustration
+                  filename="Business%20growth-amico.svg"
+                  alt="Customer dashboard illustration"
+                  className="w-28 h-16 object-contain"
+                  loading="eager"
+                />
+              </div>
+              <span className="px-4 py-2 rounded-full text-sm font-medium bg-green-100 text-green-700">
+                {myActiveRequests.length} Active Request{myActiveRequests.length !== 1 ? 's' : ''}
+              </span>
+            </div>
           </div>
 
           {/* Navigation */}
@@ -147,9 +158,11 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
               {/* Workers Grid */}
               {workers.length === 0 ? (
                 <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-12 text-center">
-                  <div className="w-20 h-20 rounded-3xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
-                    <Search className="w-10 h-10 text-gray-400" />
-                  </div>
+                  <Illustration
+                    filename="Job%20hunt-amico.svg"
+                    alt="No workers found"
+                    className="w-56 h-40 object-contain mx-auto mb-6"
+                  />
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">No workers found</h3>
                   <p className="text-gray-500">Try adjusting your search or filters</p>
                 </div>
@@ -165,9 +178,11 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
             <div className="space-y-4">
               {myActiveRequests.length === 0 ? (
                 <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-12 text-center">
-                  <div className="w-20 h-20 rounded-3xl bg-green-100 flex items-center justify-center mx-auto mb-6">
-                    <Briefcase className="w-10 h-10 text-green-600" />
-                  </div>
+                  <Illustration
+                    filename="Work%20in%20progress-amico.svg"
+                    alt="No active requests"
+                    className="w-56 h-40 object-contain mx-auto mb-6"
+                  />
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">No active requests</h3>
                   <p className="text-gray-500 mb-6">Create a new request to get started with finding skilled workers</p>
                   <button onClick={() => setActiveTab('create')} className="px-8 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Create Request</button>
@@ -182,9 +197,11 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
             <div className="space-y-4">
               {myCompletedRequests.length === 0 ? (
                 <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-12 text-center">
-                  <div className="w-20 h-20 rounded-3xl bg-gray-100 flex items-center justify-center mx-auto mb-6">
-                    <CheckCircle className="w-10 h-10 text-gray-400" />
-                  </div>
+                  <Illustration
+                    filename="Processing-cuate.svg"
+                    alt="No completed jobs"
+                    className="w-56 h-40 object-contain mx-auto mb-6"
+                  />
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">No completed jobs</h3>
                   <p className="text-gray-500">Your completed requests will appear here</p>
                 </div>
@@ -198,9 +215,11 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
             <div className="space-y-4">
               {needsMyAction.length === 0 ? (
                 <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-12 text-center">
-                  <div className="w-20 h-20 rounded-3xl bg-green-100 flex items-center justify-center mx-auto mb-6">
-                    <CheckCircle className="w-10 h-10 text-green-600" />
-                  </div>
+                  <Illustration
+                    filename="Soft%20skills-pana.svg"
+                    alt="All caught up"
+                    className="w-56 h-40 object-contain mx-auto mb-6"
+                  />
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">All caught up!</h3>
                   <p className="text-gray-500">Nothing needs your attention right now</p>
                 </div>

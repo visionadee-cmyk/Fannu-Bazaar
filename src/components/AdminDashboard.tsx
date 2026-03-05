@@ -12,6 +12,7 @@ import {
 } from '../lib/db'
 import { useDBSnapshot } from '../lib/hooks'
 import WorkerProfileModal from './WorkerProfileModal'
+import Illustration from './Illustration'
 import type { CustomerProfile, SessionUser, ServiceRequest, WorkerProfile } from '../lib/types'
 import {
   Users, Briefcase, Wrench, Settings, Search, Plus,
@@ -106,6 +107,14 @@ export default function AdminDashboard({ user }: { user: SessionUser }) {
               </div>
             </div>
             <div className="flex items-center gap-3">
+              <div className="hidden md:block">
+                <Illustration
+                  filename="Logistics-cuate.svg"
+                  alt="Admin dashboard illustration"
+                  className="w-28 h-16 object-contain"
+                  loading="eager"
+                />
+              </div>
               <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-700">
                 {stats.activeWorkers} Active Workers
               </span>
@@ -420,9 +429,11 @@ function CustomersTab() {
       <div className="grid gap-4">
         {filtered.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-              <Users className="w-8 h-8 text-gray-400" />
-            </div>
+            <Illustration
+              filename="New%20team%20members-amico.svg"
+              alt="No customers found"
+              className="w-56 h-40 object-contain mx-auto mb-6"
+            />
             <h3 className="text-lg font-semibold text-gray-800">No customers found</h3>
             <p className="text-gray-500 mt-2">Try adjusting your search or create a new customer</p>
           </div>
@@ -648,9 +659,11 @@ function WorkersTab({ onShowProfile }: { onShowProfile: (id: string) => void }) 
       <div className="grid gap-4">
         {filtered.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-              <Wrench className="w-8 h-8 text-gray-400" />
-            </div>
+            <Illustration
+              filename="Construction%20worker-cuate.svg"
+              alt="No workers found"
+              className="w-56 h-40 object-contain mx-auto mb-6"
+            />
             <h3 className="text-lg font-semibold text-gray-800">No workers found</h3>
             <p className="text-gray-500 mt-2">Try adjusting your search or create a new worker</p>
           </div>
@@ -869,9 +882,11 @@ function WorksTab({ onShowProfile }: { onShowProfile: (id: string) => void }) {
       <div className="space-y-4">
         {filtered.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-4">
-              <Briefcase className="w-8 h-8 text-gray-400" />
-            </div>
+            <Illustration
+              filename="Work%20in%20progress-pana.svg"
+              alt="No jobs found"
+              className="w-56 h-40 object-contain mx-auto mb-6"
+            />
             <h3 className="text-lg font-semibold text-gray-800">No jobs found</h3>
             <p className="text-gray-500 mt-2">Try adjusting your search</p>
           </div>

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { updateWorkerProfile } from '../lib/db'
 import { useDBSnapshot } from '../lib/hooks'
 import type { ServiceCategory, SessionUser, WorkerProfile } from '../lib/types'
+import Illustration from './Illustration'
 
 const CATEGORIES: ServiceCategory[] = [
   'AC',
@@ -81,6 +82,14 @@ export default function WorkerProfileForm({ user }: { user: SessionUser }) {
         <div>
           <div className="text-sm font-semibold">My Profile</div>
           <div className="mt-1 text-xs text-white/60">Update your skills and contact details.</div>
+        </div>
+        <div className="hidden md:block">
+          <Illustration
+            filename="Creative%20team-bro.svg"
+            alt="Profile illustration"
+            className="w-28 h-16 object-contain"
+            loading="eager"
+          />
         </div>
         <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80">
           Rating: {profile.ratingAvg.toFixed(1)} ({profile.ratingCount})
