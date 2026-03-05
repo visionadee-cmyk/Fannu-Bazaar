@@ -5,7 +5,7 @@ import { createCustomer, createWorker, seedIfEmpty } from '../lib/db'
 import { supabase } from '../lib/supabase'
 import { 
   Mail, Lock, ArrowLeft, UserCog, 
-  Chrome, Facebook, Search, Briefcase
+  Chrome, Search, Briefcase
 } from 'lucide-react'
 
 // Mint Green color scheme matching Figma design
@@ -114,10 +114,10 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
     setActiveTab('signup_form')
   }
 
-  const handleOAuthStart = async (provider: 'google' | 'facebook') => {
+  const handleOAuthStart = async () => {
     setLoginError('')
     const { error } = await supabase.auth.signInWithOAuth({
-      provider,
+      provider: 'google',
       options: {
         redirectTo: window.location.origin,
       },
@@ -412,20 +412,13 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
             </div>
 
             {/* Social Login */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <button
-                onClick={() => void handleOAuthStart('google')}
+                onClick={() => void handleOAuthStart()}
                 className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all"
               >
                 <Chrome className="w-4 h-4" />
                 <span className="text-xs font-medium text-gray-700">Sign in with Google</span>
-              </button>
-              <button
-                onClick={() => void handleOAuthStart('facebook')}
-                className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 bg-blue-500 text-white hover:bg-blue-600 transition-all"
-              >
-                <Facebook className="w-4 h-4" />
-                <span className="text-xs font-medium">Sign in with Facebook</span>
               </button>
             </div>
           </div>
@@ -495,20 +488,13 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
               <div className="flex-1 h-px bg-gray-200" />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3">
               <button
-                onClick={() => void handleOAuthStart('google')}
+                onClick={() => void handleOAuthStart()}
                 className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all"
               >
                 <Chrome className="w-4 h-4" />
-                <span className="text-xs font-medium text-gray-700">Google</span>
-              </button>
-              <button
-                onClick={() => void handleOAuthStart('facebook')}
-                className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 bg-blue-500 text-white hover:bg-blue-600 transition-all"
-              >
-                <Facebook className="w-4 h-4" />
-                <span className="text-xs font-medium">Facebook</span>
+                <span className="text-xs font-medium text-gray-700">Continue with Google</span>
               </button>
             </div>
           </div>
