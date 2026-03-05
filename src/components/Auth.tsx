@@ -62,6 +62,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
   const handleRoleSelect = (selectedRole: 'customer' | 'worker') => {
     setRole(selectedRole)
     setLoginError('')
+    setPassword('')
     setActiveTab('signup_form')
   }
 
@@ -83,6 +84,11 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
       return
     }
 
+    if (!password.trim()) {
+      setLoginError('Please enter password')
+      return
+    }
+
     const normalizedEmail = email.toLowerCase().trim()
 
     const adminExists = db.admins.some((a) => a.active && a.email?.toLowerCase() === normalizedEmail)
@@ -95,12 +101,22 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
     }
 
     if (role === 'customer') {
-      const c = createCustomer({ name: name.trim(), email: normalizedEmail, phone: phone.trim() || undefined })
+      const c = createCustomer({
+        name: name.trim(),
+        email: normalizedEmail,
+        password: password.trim(),
+        phone: phone.trim() || undefined,
+      })
       onLogin({ id: c.id, role: 'customer', name: c.name })
       return
     }
 
-    const w = createWorker({ name: name.trim(), email: normalizedEmail, phone: phone.trim() || undefined })
+    const w = createWorker({
+      name: name.trim(),
+      email: normalizedEmail,
+      password: password.trim(),
+      phone: phone.trim() || undefined,
+    })
     onLogin({ id: w.id, role: 'worker', name: w.name })
   }
 
@@ -138,12 +154,20 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
 
     const customer = db.customers.find((c) => c.active && c.email?.toLowerCase() === normalizedEmail)
     if (customer) {
+      if (customer.password && customer.password !== password) {
+        setLoginError('Invalid password')
+        return
+      }
       onLogin({ id: customer.id, role: 'customer', name: customer.name })
       return
     }
 
     const worker = db.workers.find((w) => w.active && w.email?.toLowerCase() === normalizedEmail)
     if (worker) {
+      if (worker.password && worker.password !== password) {
+        setLoginError('Invalid password')
+        return
+      }
       onLogin({ id: worker.id, role: 'worker', name: worker.name })
       return
     }
@@ -506,6 +530,33 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
                   placeholder="example@gmail.com"
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-800 focus:outline-none focus:border-green-400 text-sm"
                 />
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-600 mb-1.5 block">Password</label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                    <Lock className="w-4 h-4 text-gray-400" />
+                    <div className="w-px h-4 bg-gray-300" />
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••"
+                    className="w-full pl-12 pr-16 py-3 rounded-xl border border-gray-200 bg-white text-gray-800 focus:outline-none focus:border-green-400 text-sm"
+                  />
+                  <button
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs font-medium rounded"
+                    style={{
+                      color: showPassword ? THEME.coral : '#9CA3AF',
+                      background: showPassword ? '#FEE2E2' : 'transparent',
+                    }}
+                  >
+                    {showPassword ? 'Hide' : 'View'}
+                  </button>
+                </div>
               </div>
 
               <div>

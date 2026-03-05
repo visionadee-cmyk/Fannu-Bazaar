@@ -44,6 +44,7 @@ export type CustomerProfile = {
   id: string
   name: string
   email: string
+  password?: string
   phone?: string
   active: boolean
 }
@@ -52,6 +53,7 @@ export type WorkerProfile = {
   id: string
   name: string
   email?: string
+  password?: string
   phone?: string
   whatsapp?: string
   viber?: string

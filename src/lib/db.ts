@@ -24,12 +24,13 @@ function nowIso() {
   return new Date().toISOString()
 }
 
-export function createCustomer(input: { name: string; email: string; phone?: string }) {
+export function createCustomer(input: { name: string; email: string; password?: string; phone?: string }) {
   const db = load()
   const c: CustomerProfile = {
     id: `c_${Math.random().toString(16).slice(2)}`,
     name: input.name,
     email: input.email,
+    password: input.password,
     phone: input.phone,
     active: true,
   }
@@ -60,12 +61,13 @@ export function deleteCustomer(params: { customerId: string }) {
   save(db)
 }
 
-export function createWorker(input: { name: string; email?: string; phone?: string }) {
+export function createWorker(input: { name: string; email?: string; password?: string; phone?: string }) {
   const db = load()
   const w: WorkerProfile = {
     id: `w_${Math.random().toString(16).slice(2)}`,
     name: input.name,
     email: input.email,
+    password: input.password,
     phone: input.phone,
     whatsapp: undefined,
     viber: undefined,
@@ -188,6 +190,7 @@ export async function seedIfEmpty() {
       id: 'c_1',
       name: 'Aisha',
       email: 'customer@demo.com',
+      password: 'demo123',
       phone: '+91 90000 00001',
       active: true,
     },
@@ -195,6 +198,7 @@ export async function seedIfEmpty() {
       id: 'c_2',
       name: 'Rahul',
       email: 'customer@demo.com',
+      password: 'demo123',
       phone: '+91 90000 00002',
       active: true,
     },
@@ -205,6 +209,7 @@ export async function seedIfEmpty() {
       id: 'w_1',
       name: 'Suresh',
       email: 'worker@demo.com',
+      password: 'demo123',
       phone: '+91 80000 00001',
       whatsapp: '+91 80000 00001',
       categories: ['AC', 'Electrical'],
@@ -220,6 +225,7 @@ export async function seedIfEmpty() {
       id: 'w_2',
       name: 'Meena',
       email: 'worker@demo.com',
+      password: 'demo123',
       phone: '+91 80000 00002',
       viber: '+91 80000 00002',
       categories: ['Plumbing', 'Carpentry'],
