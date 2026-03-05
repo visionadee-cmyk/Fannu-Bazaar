@@ -3,7 +3,7 @@ import type { SessionUser } from '../lib/types'
 import { useDBSnapshot } from '../lib/hooks'
 import { refreshDB } from '../lib/db'
 import { 
-  Mail, Lock, Eye, EyeOff, ArrowLeft, UserCog, 
+  Mail, Lock, ArrowLeft, UserCog, 
   Chrome, Facebook, Search, Briefcase
 } from 'lucide-react'
 
