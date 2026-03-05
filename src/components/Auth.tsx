@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { SessionUser } from '../lib/types'
 import { useDBSnapshot } from '../lib/hooks'
-import { createCustomer, createWorker, refreshDB } from '../lib/db'
+import { createCustomer, createWorker, seedIfEmpty } from '../lib/db'
 import { 
   Mail, Lock, ArrowLeft, UserCog, 
   Chrome, Facebook, Search, Briefcase
@@ -56,7 +56,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    refreshDB().then(() => setIsLoading(false))
+    seedIfEmpty().then(() => setIsLoading(false))
   }, [])
 
   const handleRoleSelect = (selectedRole: 'customer' | 'worker') => {
@@ -117,7 +117,9 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
       return
     }
 
-    const admin = db.admins.find((a) => a.active && a.email?.toLowerCase() === email.toLowerCase().trim())
+    const normalizedEmail = email.toLowerCase().trim()
+
+    const admin = db.admins.find((a) => a.active && a.email?.toLowerCase() === normalizedEmail)
     
     if (admin) {
       let expectedPassword = 'admin123'
@@ -134,13 +136,13 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
       }
     }
 
-    const customer = db.customers.find((c) => c.active && c.email?.toLowerCase() === email.toLowerCase().trim())
+    const customer = db.customers.find((c) => c.active && c.email?.toLowerCase() === normalizedEmail)
     if (customer) {
       onLogin({ id: customer.id, role: 'customer', name: customer.name })
       return
     }
 
-    const worker = db.workers.find((w) => w.active && w.email?.toLowerCase() === email.toLowerCase().trim())
+    const worker = db.workers.find((w) => w.active && w.email?.toLowerCase() === normalizedEmail)
     if (worker) {
       onLogin({ id: worker.id, role: 'worker', name: worker.name })
       return

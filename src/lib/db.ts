@@ -156,101 +156,99 @@ export function resetDB() {
   void persist(cache)
 }
 
-export function seedIfEmpty() {
-  void (async () => {
-    await refreshDB()
-    const db = load()
-    if (
-      db.admins.length ||
-      db.customers.length ||
-      db.workers.length ||
-      db.requests.length ||
-      db.reviews.length
-    )
-      return
+export async function seedIfEmpty() {
+  await refreshDB()
+  const db = load()
+  if (
+    db.admins.length ||
+    db.customers.length ||
+    db.workers.length ||
+    db.requests.length ||
+    db.reviews.length
+  )
+    return
 
-    const admins: AdminProfile[] = [
-      {
-        id: 'a_1',
-        name: 'Admin',
-        email: 'admin@demo.com',
-        active: true,
-      },
-      {
-        id: 'a_2',
-        name: 'Rettey',
-        email: 'retey.ay@hotmail.com',
-        active: true,
-      },
-    ]
+  const admins: AdminProfile[] = [
+    {
+      id: 'a_1',
+      name: 'Admin',
+      email: 'admin@demo.com',
+      active: true,
+    },
+    {
+      id: 'a_2',
+      name: 'Rettey',
+      email: 'retey.ay@hotmail.com',
+      active: true,
+    },
+  ]
 
-    const customers: CustomerProfile[] = [
-      {
-        id: 'c_1',
-        name: 'Aisha',
-        email: 'customer@demo.com',
-        phone: '+91 90000 00001',
-        active: true,
-      },
-      {
-        id: 'c_2',
-        name: 'Rahul',
-        email: 'customer@demo.com',
-        phone: '+91 90000 00002',
-        active: true,
-      },
-    ]
+  const customers: CustomerProfile[] = [
+    {
+      id: 'c_1',
+      name: 'Aisha',
+      email: 'customer@demo.com',
+      phone: '+91 90000 00001',
+      active: true,
+    },
+    {
+      id: 'c_2',
+      name: 'Rahul',
+      email: 'customer@demo.com',
+      phone: '+91 90000 00002',
+      active: true,
+    },
+  ]
 
-    const workers: WorkerProfile[] = [
-      {
-        id: 'w_1',
-        name: 'Suresh',
-        email: 'worker@demo.com',
-        phone: '+91 80000 00001',
-        whatsapp: '+91 80000 00001',
-        categories: ['AC', 'Electrical'],
-        skills: ['Split AC service', 'Wiring', 'Fan repair', 'Switchboard'],
-        about: '10+ years experience. Fast same-day service in city limits.',
-        promoPosterUrl: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1200&q=80&auto=format&fit=crop',
-        ratingAvg: 4.6,
-        ratingCount: 92,
-        jobsDone: 92,
-        active: true,
-      },
-      {
-        id: 'w_2',
-        name: 'Meena',
-        email: 'worker@demo.com',
-        phone: '+91 80000 00002',
-        viber: '+91 80000 00002',
-        categories: ['Plumbing', 'Carpentry'],
-        skills: ['Leak fixing', 'Tap replacement', 'Door hinges', 'Furniture repair'],
-        about: 'Trusted technician. Transparent pricing and neat work.',
-        promoPosterUrl: 'https://images.unsplash.com/photo-1581092919535-7146c7d31c28?w=1200&q=80&auto=format&fit=crop',
-        ratingAvg: 4.8,
-        ratingCount: 120,
-        jobsDone: 120,
-        active: true,
-      },
-    ]
+  const workers: WorkerProfile[] = [
+    {
+      id: 'w_1',
+      name: 'Suresh',
+      email: 'worker@demo.com',
+      phone: '+91 80000 00001',
+      whatsapp: '+91 80000 00001',
+      categories: ['AC', 'Electrical'],
+      skills: ['Split AC service', 'Wiring', 'Fan repair', 'Switchboard'],
+      about: '10+ years experience. Fast same-day service in city limits.',
+      promoPosterUrl: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1200&q=80&auto=format&fit=crop',
+      ratingAvg: 4.6,
+      ratingCount: 92,
+      jobsDone: 92,
+      active: true,
+    },
+    {
+      id: 'w_2',
+      name: 'Meena',
+      email: 'worker@demo.com',
+      phone: '+91 80000 00002',
+      viber: '+91 80000 00002',
+      categories: ['Plumbing', 'Carpentry'],
+      skills: ['Leak fixing', 'Tap replacement', 'Door hinges', 'Furniture repair'],
+      about: 'Trusted technician. Transparent pricing and neat work.',
+      promoPosterUrl: 'https://images.unsplash.com/photo-1581092919535-7146c7d31c28?w=1200&q=80&auto=format&fit=crop',
+      ratingAvg: 4.8,
+      ratingCount: 120,
+      jobsDone: 120,
+      active: true,
+    },
+  ]
 
-    const requests: ServiceRequest[] = [
-      {
-        id: 'r_1',
-        createdAt: nowIso(),
-        status: 'open',
-        category: 'Plumbing',
-        title: 'Bathroom tap leaking',
-        description: 'Continuous leak from tap. Need repair or replacement.',
-        budget: 800,
-        urgency: 'medium',
-        location: 'Chennai',
-        customerId: 'c_1',
-      },
-    ]
+  const requests: ServiceRequest[] = [
+    {
+      id: 'r_1',
+      createdAt: nowIso(),
+      status: 'open',
+      category: 'Plumbing',
+      title: 'Bathroom tap leaking',
+      description: 'Continuous leak from tap. Need repair or replacement.',
+      budget: 800,
+      urgency: 'medium',
+      location: 'Chennai',
+      customerId: 'c_1',
+    },
+  ]
 
-    save({ admins, customers, workers, requests, reviews: [] })
-  })()
+  save({ admins, customers, workers, requests, reviews: [] })
 }
 
 export function listWorkers(category?: ServiceCategory) {

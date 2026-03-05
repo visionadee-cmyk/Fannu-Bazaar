@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Auth from './components/Auth'
 import AdminDashboard from './components/AdminDashboard'
 import CustomerDashboard from './components/CustomerDashboard'
@@ -9,8 +9,8 @@ import { seedIfEmpty } from './lib/db'
 import type { SessionUser } from './lib/types'
 
 export default function App() {
-  useMemo(() => {
-    seedIfEmpty()
+  useEffect(() => {
+    void seedIfEmpty()
   }, [])
 
   const [user, setUser] = useState<SessionUser | null>(null)
