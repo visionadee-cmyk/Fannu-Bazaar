@@ -17,30 +17,51 @@ const THEME = {
   coral: '#F87171',       // For "Forgot Password"
 }
 
-// Simple illustration component
+const publicImageUrl = (filename: string) => {
+  const base = (import.meta as any).env?.BASE_URL ?? '/'
+  const normalizedBase = base.endsWith('/') ? base : `${base}/`
+  return `${normalizedBase}images/${filename}`
+}
+
+const imageFallbackUrl = (filename: string) => `https://fannu-bazaar.vercel.app/images/${filename}`
+
+// Simple illustration component - now uses Storyset images
 const LoginIllustration = () => (
-  <svg viewBox="0 0 200 160" className="w-full h-40">
-    <circle cx="100" cy="80" r="60" fill={THEME.primaryLight} opacity="0.5" />
-    <rect x="70" y="50" width="60" height="80" rx="8" fill="white" stroke="#E5E7EB" strokeWidth="2" />
-    <rect x="80" y="65" width="40" height="8" rx="2" fill={THEME.primary} opacity="0.3" />
-    <rect x="80" y="80" width="30" height="6" rx="2" fill="#9CA3AF" />
-    <rect x="80" y="92" width="35" height="6" rx="2" fill="#9CA3AF" />
-    <circle cx="100" cy="115" r="12" fill={THEME.primary} opacity="0.2" />
-    <path d="M95 115 L98 118 L105 111" stroke={THEME.primary} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-    <circle cx="145" cy="55" r="15" fill={THEME.primaryLight} />
-    <path d="M140 55 L143 58 L150 51" stroke={THEME.primary} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
+  <div className="w-full h-40 mb-4">
+    <img 
+      src={publicImageUrl('Job%20hunt-bro.svg')}
+      alt="Login illustration" 
+      className="w-full h-full object-contain"
+      loading="eager"
+      onError={(e) => {
+        const img = e.currentTarget
+        if (img.dataset.fallbackApplied === '1') return
+        img.dataset.fallbackApplied = '1'
+        const fallback = imageFallbackUrl('Job%20hunt-bro.svg')
+        console.error('Failed to load image:', img.src, 'Falling back to:', fallback)
+        img.src = fallback
+      }}
+    />
+  </div>
 )
 
 const WelcomeIllustration = () => (
-  <svg viewBox="0 0 200 120" className="w-full h-32">
-    <circle cx="60" cy="60" r="40" fill="#FEF3C7" />
-    <circle cx="100" cy="60" r="40" fill={THEME.primaryLight} />
-    <circle cx="140" cy="60" r="40" fill="#E0E7FF" />
-    <rect x="45" y="50" width="30" height="20" rx="4" fill="#F59E0B" opacity="0.6" />
-    <rect x="85" y="45" width="30" height="30" rx="4" fill={THEME.primary} opacity="0.6" />
-    <rect x="125" y="50" width="30" height="20" rx="4" fill="#6366F1" opacity="0.6" />
-  </svg>
+  <div className="w-full h-32 mb-4">
+    <img 
+      src={publicImageUrl('New%20team%20members-amico.svg')}
+      alt="Welcome illustration" 
+      className="w-full h-full object-contain"
+      loading="eager"
+      onError={(e) => {
+        const img = e.currentTarget
+        if (img.dataset.fallbackApplied === '1') return
+        img.dataset.fallbackApplied = '1'
+        const fallback = imageFallbackUrl('New%20team%20members-amico.svg')
+        console.error('Failed to load image:', img.src, 'Falling back to:', fallback)
+        img.src = fallback
+      }}
+    />
+  </div>
 )
 
 export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void }) {
@@ -270,8 +291,22 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
         {/* Hero Section */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12">
           <div className="text-center mb-12">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-3xl shadow-lg mb-6">
-              <img src="/logo.png" alt="Fannu Bazaar" className="w-14 h-14 object-contain" />
+            {/* Hero Image - Storyset illustration */}
+            <div className="mb-8">
+              <img 
+                src={publicImageUrl('Marketplace-amico.svg')}
+                alt="Fannu Bazaar - Connect with skilled workers"
+                className="w-full max-w-md mx-auto h-auto"
+                loading="eager"
+                onError={(e) => {
+                  const img = e.currentTarget
+                  if (img.dataset.fallbackApplied === '1') return
+                  img.dataset.fallbackApplied = '1'
+                  const fallback = imageFallbackUrl('Marketplace-amico.svg')
+                  console.error('Failed to load image:', img.src, 'Falling back to:', fallback)
+                  img.src = fallback
+                }}
+              />
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
               Find Skilled Workers.<br />
