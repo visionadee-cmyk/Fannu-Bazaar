@@ -2,19 +2,10 @@ import { useMemo, useState } from 'react'
 import { updateWorkerProfile } from '../lib/db'
 import { useDBSnapshot } from '../lib/hooks'
 import type { ServiceCategory, SessionUser, WorkerProfile } from '../lib/types'
+import { ALL_CATEGORIES } from '../lib/categoryConfig'
 import Illustration from './Illustration'
 
-const CATEGORIES: ServiceCategory[] = [
-  'AC',
-  'Plumbing',
-  'Electrical',
-  'Carpentry',
-  'Cleaning',
-  'Painting',
-  'Appliance',
-  'PestControl',
-  'Other',
-]
+const CATEGORIES: ServiceCategory[] = ALL_CATEGORIES
 
 function splitSkills(raw: string) {
   return raw

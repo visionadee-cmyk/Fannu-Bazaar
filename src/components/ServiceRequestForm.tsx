@@ -1,23 +1,14 @@
 import { useState } from 'react'
 import type { ServiceCategory } from '../lib/types'
-
-const CATEGORIES: ServiceCategory[] = [
-  'AC',
-  'Plumbing',
-  'Electrical',
-  'Carpentry',
-  'Cleaning',
-  'Painting',
-  'Appliance',
-  'PestControl',
-  'Other',
-]
+import { ALL_CATEGORIES } from '../lib/categoryConfig'
+import CategoryPicker from './CategoryPicker'
 
 export default function ServiceRequestForm({
   onSubmit,
 }: {
   onSubmit: (v: {
     category: ServiceCategory
+    subcategory?: string
     title: string
     description: string
     budget: number
@@ -26,6 +17,7 @@ export default function ServiceRequestForm({
   }) => void
 }) {
   const [category, setCategory] = useState<ServiceCategory>('AC')
+  const [subcategory, setSubcategory] = useState<string | undefined>(undefined)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [budget, setBudget] = useState(1000)
@@ -37,7 +29,7 @@ export default function ServiceRequestForm({
       className="rounded-2xl border border-white/10 bg-white/5 p-4"
       onSubmit={(e) => {
         e.preventDefault()
-        onSubmit({ category, title, description, budget, urgency, location })
+        onSubmit({ category, subcategory, title, description, budget, urgency, location })
         setTitle('')
         setDescription('')
         setBudget(1000)
@@ -50,12 +42,22 @@ export default function ServiceRequestForm({
       <div className="grid gap-3 md:grid-cols-2">
         <div>
           <label className="mb-1 block text-xs text-white/70">Category</label>
+          <CategoryPicker
+            category={category}
+            subcategory={subcategory}
+            onChange={(next) => {
+              if (next.category === 'All') return
+              setCategory(next.category)
+              setSubcategory(next.subcategory)
+            }}
+            className="mb-3"
+          />
           <select
             className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 py-2 text-sm text-white"
             value={category}
             onChange={(e) => setCategory(e.target.value as ServiceCategory)}
           >
-            {CATEGORIES.map((c) => (
+            {ALL_CATEGORIES.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>

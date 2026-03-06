@@ -1,17 +1,6 @@
 import type { ServiceCategory } from '../lib/types'
+import { CATEGORY_CONFIG } from '../lib/categoryConfig'
 import Illustration from './Illustration'
-
-const CATEGORY_IMAGE: Record<ServiceCategory, { filename: string; blurb: string }> = {
-  AC: { filename: 'Maintenance-bro.svg', blurb: 'Cooling & AC repair' },
-  Plumbing: { filename: 'Pipeline%20maintenance-amico.svg', blurb: 'Leaks, fittings, water' },
-  Electrical: { filename: 'Electrician-cuate.svg', blurb: 'Wiring, lights, power' },
-  Carpentry: { filename: 'Measure-amico.svg', blurb: 'Woodwork & fittings' },
-  Cleaning: { filename: 'Laundry%20and%20dry%20cleaning-pana.svg', blurb: 'Home & office cleaning' },
-  Painting: { filename: 'Scaffold-amico.svg', blurb: 'Walls, touch-ups' },
-  Appliance: { filename: 'Construction%20costs-amico.svg', blurb: 'Appliance repair' },
-  PestControl: { filename: 'Firefighter-cuate.svg', blurb: 'Pest control service' },
-  Other: { filename: 'Work%20in%20progress-amico.svg', blurb: 'Any other services' },
-}
 
 export default function WorkTypeCards({
   value,
@@ -24,10 +13,7 @@ export default function WorkTypeCards({
   className?: string
   dense?: boolean
 }) {
-  const items = (Object.keys(CATEGORY_IMAGE) as ServiceCategory[]).map((c) => ({
-    category: c,
-    ...CATEGORY_IMAGE[c],
-  }))
+  const items = CATEGORY_CONFIG.map((c) => ({ category: c.category, filename: c.filename, blurb: c.blurb }))
 
   return (
     <div className={className}>

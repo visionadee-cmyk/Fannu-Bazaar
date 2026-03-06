@@ -308,6 +308,7 @@ export function updateWorkerProfile(params: {
 export function createRequest(input: {
   customerId: string
   category: ServiceCategory
+  subcategory?: string
   title: string
   description: string
   budget: number

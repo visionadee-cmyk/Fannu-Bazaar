@@ -14,7 +14,8 @@ import { useDBSnapshot } from '../lib/hooks'
 import type { ServiceCategory, ServiceRequest, SessionUser } from '../lib/types'
 import WorkerProfileForm from './WorkerProfileForm'
 import Illustration from './Illustration'
-import WorkTypeCards from './WorkTypeCards'
+import CategoryPicker from './CategoryPicker'
+import { ALL_CATEGORIES } from '../lib/categoryConfig'
 import {
   Search, Briefcase, CheckCircle, Clock, Star, User,
   Wrench, DollarSign, Calendar, MapPin
@@ -35,7 +36,7 @@ const THEME = {
   pink: '#EC4899',
 }
 
-const CATEGORIES = ['All','AC','Plumbing','Electrical','Carpentry','Cleaning','Painting','Appliance','PestControl','Other'] as const
+const CATEGORIES: Array<ServiceCategory | 'All'> = ['All', ...ALL_CATEGORIES]
 
 function statusLabel(s: ServiceRequest['status']) { return s.replace(/_/g, ' ') }
 function formatIso(iso?: string) {
@@ -47,6 +48,7 @@ export default function WorkerDashboard({ user }: { user: SessionUser }) {
   const db = useDBSnapshot()
   const [activeTab, setActiveTab] = useState<'browse' | 'assigned' | 'completed' | 'actions' | 'profile'>('browse')
   const [browseCategory, setBrowseCategory] = useState<ServiceCategory | 'All'>('All')
+  const [browseSubcategory, setBrowseSubcategory] = useState<string | undefined>(undefined)
   const [browseQuery, setBrowseQuery] = useState('')
 
   const myAssigned = useMemo(() => db.requests.filter((r) => r.acceptedWorkerId === user.id), [db.requests, user.id])
@@ -55,8 +57,13 @@ export default function WorkerDashboard({ user }: { user: SessionUser }) {
   const needsMyAction = useMemo(() => myAssigned.filter((r) => ['inspection_pending_worker_proposal','inspection_scheduled','awaiting_quote','work_pending_worker_schedule','work_scheduled','payment_pending'].includes(r.status)), [myAssigned])
   const openRequests = useMemo(() => {
     const q = browseQuery.trim().toLowerCase()
-    return db.requests.filter((r) => r.status === 'open').filter((r) => (browseCategory === 'All' ? true : r.category === browseCategory)).filter((r) => !q || r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q) || r.location.toLowerCase().includes(q))
-  }, [browseCategory, browseQuery, db.requests])
+    const sub = (browseSubcategory ?? '').trim().toLowerCase()
+    return db.requests
+      .filter((r) => r.status === 'open')
+      .filter((r) => (browseCategory === 'All' ? true : r.category === browseCategory))
+      .filter((r) => (!sub ? true : (r.subcategory ?? '').toLowerCase().includes(sub) || r.title.toLowerCase().includes(sub) || r.description.toLowerCase().includes(sub)))
+      .filter((r) => !q || r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q) || r.location.toLowerCase().includes(q) || (r.subcategory ?? '').toLowerCase().includes(q))
+  }, [browseCategory, browseQuery, browseSubcategory, db.requests])
   const worker = useMemo(() => db.workers.find((w) => w.id === user.id), [db.workers, user.id])
 
   const tabs = [
@@ -130,25 +137,25 @@ export default function WorkerDashboard({ user }: { user: SessionUser }) {
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                    <div className="mb-3">
-                      <button
-                        type="button"
-                        onClick={() => setBrowseCategory('All')}
-                        className={`mb-3 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 transition-colors ${browseCategory === 'All' ? 'bg-emerald-50 text-emerald-700 ring-emerald-100' : 'bg-gray-50 text-gray-600 ring-gray-200 hover:bg-gray-100'}`}
-                      >
-                        All Categories
-                      </button>
-                      {browseCategory !== 'All' && (
-                        <div className="text-xs text-gray-500">Selected: {browseCategory}</div>
-                      )}
-                    </div>
-                    <WorkTypeCards
-                      value={browseCategory === 'All' ? 'AC' : (browseCategory as ServiceCategory)}
-                      onChange={(c) => setBrowseCategory(c)}
-                      dense
+                    <CategoryPicker
+                      allowAllCategory
+                      category={browseCategory}
+                      subcategory={browseSubcategory}
+                      onChange={(next) => {
+                        setBrowseCategory(next.category)
+                        setBrowseSubcategory(next.subcategory)
+                      }}
                       className="mb-4"
                     />
-                    <select className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500" value={browseCategory} onChange={(e) => setBrowseCategory(e.target.value as ServiceCategory | 'All')}>
+                    <select
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      value={browseCategory}
+                      onChange={(e) => {
+                        const next = e.target.value as ServiceCategory | 'All'
+                        setBrowseCategory(next)
+                        setBrowseSubcategory(undefined)
+                      }}
+                    >
                       {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>

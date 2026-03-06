@@ -12,8 +12,9 @@ import {
 import { useDBSnapshot } from '../lib/hooks'
 import WorkerProfileModal from './WorkerProfileModal'
 import Illustration from './Illustration'
-import WorkTypeCards from './WorkTypeCards'
+import CategoryPicker from './CategoryPicker'
 import type { ServiceCategory, ServiceRequest, SessionUser, WorkerProfile } from '../lib/types'
+import { ALL_CATEGORIES } from '../lib/categoryConfig'
 import {
   Search, Briefcase, CheckCircle, Plus, Star, User,
   Wrench, DollarSign, MapPin, Clock
@@ -35,7 +36,7 @@ const THEME = {
   rose: '#F43F5E',
 }
 
-const CATEGORIES = ['All','AC','Plumbing','Electrical','Carpentry','Cleaning','Painting','Appliance','PestControl','Other'] as const
+const CATEGORIES: Array<ServiceCategory | 'All'> = ['All', ...ALL_CATEGORIES]
 
 function statusLabel(s: ServiceRequest['status']) { return s.replace(/_/g, ' ') }
 function formatIso(iso?: string) {
@@ -47,6 +48,7 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
   const db = useDBSnapshot()
   const [activeTab, setActiveTab] = useState<'create' | 'my' | 'completed' | 'confirm' | 'workers'>('my')
   const [workerCategory, setWorkerCategory] = useState<ServiceCategory | 'All'>('All')
+  const [workerSubcategory, setWorkerSubcategory] = useState<string | undefined>(undefined)
   const [workerQuery, setWorkerQuery] = useState('')
   const [profileModalWorkerId, setProfileModalWorkerId] = useState<string | null>(null)
 
@@ -62,8 +64,20 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
   }, [db.reviews, user.id])
   const workers = useMemo(() => {
     const q = workerQuery.trim().toLowerCase()
-    return db.workers.filter((w) => (workerCategory === 'All' ? true : w.categories.includes(workerCategory))).filter((w) => !q || w.name.toLowerCase().includes(q) || w.categories.join(',').toLowerCase().includes(q) || w.skills.join(',').toLowerCase().includes(q) || (w.about ?? '').toLowerCase().includes(q)).sort((a, b) => (b.ratingAvg ?? 0) - (a.ratingAvg ?? 0))
-  }, [db.workers, workerCategory, workerQuery])
+    const sub = (workerSubcategory ?? '').trim().toLowerCase()
+    return db.workers
+      .filter((w) => (workerCategory === 'All' ? true : w.categories.includes(workerCategory)))
+      .filter((w) => (!sub ? true : w.skills.some((s) => s.toLowerCase().includes(sub)) || (w.about ?? '').toLowerCase().includes(sub)))
+      .filter(
+        (w) =>
+          !q ||
+          w.name.toLowerCase().includes(q) ||
+          w.categories.join(',').toLowerCase().includes(q) ||
+          w.skills.join(',').toLowerCase().includes(q) ||
+          (w.about ?? '').toLowerCase().includes(q)
+      )
+      .sort((a, b) => (b.ratingAvg ?? 0) - (a.ratingAvg ?? 0))
+  }, [db.workers, workerCategory, workerQuery, workerSubcategory])
 
   const tabs = [
     { id: 'my', label: 'My Requests', count: myActiveRequests.length, icon: Briefcase },
@@ -142,25 +156,21 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
                 <div className="grid gap-4 md:grid-cols-3">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                    <div className="mb-3">
-                      <button
-                        type="button"
-                        onClick={() => setWorkerCategory('All')}
-                        className={`mb-3 inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 transition-colors ${workerCategory === 'All' ? 'bg-emerald-50 text-emerald-700 ring-emerald-100' : 'bg-gray-50 text-gray-600 ring-gray-200 hover:bg-gray-100'}`}
-                      >
-                        All Categories
-                      </button>
-                      {workerCategory !== 'All' && (
-                        <div className="text-xs text-gray-500">Selected: {workerCategory}</div>
-                      )}
-                    </div>
-                    <WorkTypeCards
-                      value={workerCategory === 'All' ? 'AC' : (workerCategory as ServiceCategory)}
-                      onChange={(c) => setWorkerCategory(c)}
-                      dense
+                    <CategoryPicker
+                      allowAllCategory
+                      category={workerCategory}
+                      subcategory={workerSubcategory}
+                      onChange={(next) => {
+                        setWorkerCategory(next.category)
+                        setWorkerSubcategory(next.subcategory)
+                      }}
                       className="mb-4"
                     />
-                    <select className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500" value={workerCategory} onChange={(e) => setWorkerCategory(e.target.value as ServiceCategory | 'All')}>
+                    <select className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500" value={workerCategory} onChange={(e) => {
+                      const next = e.target.value as ServiceCategory | 'All'
+                      setWorkerCategory(next)
+                      setWorkerSubcategory(undefined)
+                    }}>
                       {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
@@ -276,8 +286,21 @@ function StatusBadge({ status }: { status: ServiceRequest['status'] }) {
   return <span className={`px-3 py-1.5 rounded-full text-xs font-medium ${colors.bg} ${colors.text}`}>{statusLabel(status)}</span>
 }
 
-function ServiceRequestForm({ onSubmit }: { onSubmit: (values: { category: ServiceCategory; title: string; description: string; location: string; budget: number; urgency: 'low' | 'medium' | 'high' }) => void }) {
+function ServiceRequestForm({
+  onSubmit,
+}: {
+  onSubmit: (values: {
+    category: ServiceCategory
+    subcategory?: string
+    title: string
+    description: string
+    location: string
+    budget: number
+    urgency: 'low' | 'medium' | 'high'
+  }) => void
+}) {
   const [category, setCategory] = useState<ServiceCategory>('AC')
+  const [subcategory, setSubcategory] = useState<string | undefined>(undefined)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [location, setLocation] = useState('')
@@ -285,13 +308,36 @@ function ServiceRequestForm({ onSubmit }: { onSubmit: (values: { category: Servi
   const [urgency, setUrgency] = useState<'low' | 'medium' | 'high'>('medium')
 
   return (
-    <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); onSubmit({ category, title: title.trim(), description: description.trim(), location: location.trim(), budget, urgency }) }}>
+    <form
+      className="space-y-5"
+      onSubmit={(e) => {
+        e.preventDefault()
+        onSubmit({
+          category,
+          subcategory,
+          title: title.trim(),
+          description: description.trim(),
+          location: location.trim(),
+          budget,
+          urgency,
+        })
+      }}
+    >
       <div className="grid gap-5 md:grid-cols-2">
         <div>
           <label className="block text-sm font-semibold text-gray-800 mb-2">Service Category</label>
-          <WorkTypeCards value={category} onChange={setCategory} dense className="mb-4" />
+          <CategoryPicker
+            category={category}
+            subcategory={subcategory}
+            onChange={(next) => {
+              if (next.category === 'All') return
+              setCategory(next.category)
+              setSubcategory(next.subcategory)
+            }}
+            className="mb-4"
+          />
           <select className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500" value={category} onChange={(e) => setCategory(e.target.value as ServiceCategory)}>
-            {CATEGORIES.filter(c => c !== 'All').map((c) => <option key={c} value={c}>{c}</option>)}
+            {ALL_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <div>

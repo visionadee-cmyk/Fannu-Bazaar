@@ -9,6 +9,15 @@ export type ServiceCategory =
   | 'Painting'
   | 'Appliance'
   | 'PestControl'
+  | 'Masonry'
+  | 'Welding'
+  | 'Moving'
+  | 'IT'
+  | 'Beauty'
+  | 'Photography'
+  | 'Tutoring'
+  | 'Catering'
+  | 'Gardening'
   | 'Other'
 
 export type ServiceRequestStatus =
@@ -119,6 +128,7 @@ export type ServiceRequest = {
   createdAt: string
   status: ServiceRequestStatus
   category: ServiceCategory
+  subcategory?: string
   title: string
   description: string
   budget: number
