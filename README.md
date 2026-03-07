@@ -1,6 +1,6 @@
 # Fannu Bazaar - Service Marketplace Platform
 
-A service marketplace demo application connecting customers with skilled workers for home services. Built with React, TypeScript, and Tailwind CSS.
+A comprehensive service marketplace platform connecting customers with skilled workers across 60+ service categories. Built with React 18, TypeScript, and Tailwind CSS with responsive design for all devices.
 
 ## ▶️ Run locally
 
@@ -37,20 +37,23 @@ npm run preview
 ## 🚀 Features
 
 ### Customer Experience
-- **Service Request Creation**: Customers can create detailed service requests with budget, urgency, and location
+- **Service Request Creation**: Create detailed service requests with budget, urgency, location, and subcategories
+- **Advanced Category Selection**: Choose from 60+ work categories with 300+ subcategories
+- **Smart Search**: Search categories, subcategories, and workers with intelligent filtering
 - **Worker Discovery**: Browse and search for workers by service category with ratings and reviews
 - **Full Workflow Management**: Track jobs through every stage from request to payment
 - **Real-time Updates**: Instant UI updates as workers accept and progress through jobs
 
 ### Worker Experience
 - **Job Management**: View and accept service requests matching their skills
+- **Advanced Filtering**: Filter by category, subcategory, and search queries
 - **Workflow Tools**: Schedule inspections, submit quotes, manage work schedules
 - **Payment Tracking**: Mark payments as pending or paid
 - **Profile Management**: Showcase skills, experience, ratings, and availability
 
 ### Complete Job Lifecycle
-1. **Request** → Customer creates service request
-2. **Interest / Quotations** → Multiple workers can mark interest and submit quotations (while request is still open)
+1. **Request** → Customer creates service request with category and subcategory
+2. **Interest / Quotations** → Multiple workers can mark interest and submit quotations
 3. **Select** → Customer selects a worker for inspection OR chooses a quotation offer
 4. **Inspection** → Worker proposes inspection time → Customer confirms → Both confirm completion
 5. **Quote** → Worker submits quote → Customer approves
@@ -58,6 +61,84 @@ npm run preview
 7. **Work** → Worker completes job → Customer confirms completion
 8. **Payment** → Worker marks payment status
 9. **Complete** → Job marked as completed
+
+### Service Categories (60+ Types)
+
+#### Home Services (12 categories)
+- **AC**: Installation, Gas refill, Not cooling, Cleaning/service, Compressor issue, General maintenance
+- **Plumbing**: Leak fixing, Tap replacement, Toilet repair, Drain blockage, Water heater, Pipe fitting
+- **Electrical**: Wiring, Switchboard, Lights, Fan repair, Socket issue, CCTV install
+- **Carpentry**: Furniture repair, Door/lock adjustment, Shelves/cabinets, Curtain rods, Hinges, Custom work
+- **Cleaning**: Deep cleaning, Regular cleaning, Sofa/mattress, Post-construction, Office cleaning, Move-in/out
+- **Painting**: Interior painting, Exterior painting, Touch-up, Waterproofing, Ceiling, Wood polish
+- **Appliance**: Washing machine, Fridge, Microwave, TV, Water dispenser, Small appliances
+- **Pest Control**: Cockroaches, Bed bugs, Termites, Mosquito, Rodents, General spray
+- **Masonry**: Tile fixing, Grouting, Plastering, Brick work, Concrete repair, Small renovations
+- **Welding**: Gate welding, Railing, Steel fabrication, Repair welding, Stainless steel, Custom work
+- **Moving**: House shifting, Office shifting, Pickup & drop, Packing help, Furniture moving, Heavy items
+- **Gardening**: Planting, Trimming, Lawn care, Pest care, Pot setup, Landscaping
+
+#### Construction & Renovation (8 categories)
+- **Civil Works**: Foundation, Structural work, Columns/beams, Concrete work, Site preparation
+- **Roofing**: Metal roofing, Tile roofing, Waterproofing, Gutter work, Leak repair
+- **Flooring**: Tile flooring, Marble, Wooden flooring, Vinyl, Polishing
+- **Waterproofing**: Terrace, Bathroom, Basement, Tank waterproofing, Leak sealing
+- **Interior Design**: Space planning, Modular kitchen, Wardrobes, False ceiling, Wall decor
+- **Renovation**: Full renovation, Partial remodeling, Kitchen upgrade, Bathroom redo, Office renovation
+- **Scaffolding**: Erection, Dismantling, Rental, Inspection, Maintenance
+- **Demolition**: Building demolition, Wall breaking, Concrete breaking, Debris removal, Site clearing
+
+#### Technical & IT (8 categories)
+- **IT**: Laptop/PC repair, Wi‑Fi setup, Printer setup, Software install, Data recovery, Phone setup
+- **CCTV**: Installation, Repair, Upgrades, Monitoring setup, Maintenance
+- **Networking**: LAN setup, WiFi extenders, Cabling, Router config, Network troubleshooting
+- **Security Systems**: Alarm systems, Access control, Intercom, Smart locks, Sensors
+- **Solar**: Panel installation, Inverter repair, Battery setup, Maintenance, Consultation
+- **Generator**: Installation, Repair, Servicing, Rental, AMC
+- **Elevator**: Installation, Repair, Maintenance, Modernization, Breakdown
+- **Fire Safety**: Fire extinguishers, Alarm systems, Sprinkler install, Safety audit, Training
+
+#### Beauty & Personal Care (6 categories)
+- **Beauty**: Haircut, Hair color, Makeup, Henna, Facial, Bridal package
+- **Barber**: Men haircut, Beard styling, Shave, Head massage, Kids haircut
+- **Spa**: Body massage, Facial, Manicure, Pedicure, Aromatherapy
+- **Massage**: Swedish, Deep tissue, Thai, Head massage, Foot reflexology
+- **Fitness**: Personal trainer, Yoga instructor, Zumba, Crossfit, Diet planning
+- **Yoga**: Hatha yoga, Power yoga, Meditation, Pranayama, Therapeutic yoga
+
+#### Events & Media (8 categories)
+- **Photography**: Event photography, Portraits, Product shoots, Video recording, Editing, Drone
+- **Videography**: Wedding films, Corporate videos, Live streaming, Music videos, Reels editing
+- **Event Planning**: Wedding planning, Corporate events, Birthday parties, Conferences, Exhibitions
+- **Catering**: Small party, Office lunch, Snacks, Desserts, Live cooking, BBQ
+- **Bartending**: Mocktails, Cocktails, Party bartender, Mobile bar, Flair bartending
+- **DJ**: Wedding DJ, Party DJ, Sound system, Lighting, MC services
+- **Decoration**: Flower decoration, Balloon decor, Stage setup, Lighting decor, Theme parties
+- **Entertainment**: Magician, Musician, Dancer, Anchor, Game host, Kids entertainer
+
+#### Professional Services (6 categories)
+- **Tutoring**: Math, English, Science, Dhivehi, Islam, Computer basics
+- **Legal**: Document drafting, Legal advice, Notary, Contract review, Consultation
+- **Accounting**: Bookkeeping, Tax filing, Audit, Financial planning, Payroll
+- **Consulting**: Business setup, Marketing, Operations, HR consulting, Strategy
+- **Translation**: English-Dhivehi, Document translation, Interpretation, Subtitling, Proofreading
+- **Writing**: Resume writing, Copywriting, Blog writing, Social media, Technical writing
+
+#### Transportation & Logistics (6 categories)
+- **Delivery**: Food delivery, Package delivery, Grocery delivery, Same-day, Bulk delivery
+- **Driving**: Personal driver, Airport transfer, Outstation, Daily rental, School pickup
+- **Logistics**: Warehouse, Inventory, Transport, Supply chain, Distribution
+- **Courier**: Document courier, Parcel delivery, International, Bulk shipping, Express
+- **Bike Repair**: Tune-up, Puncture, Brake repair, Gear fixing, Accessories install
+- **Auto Repair**: Car service, Bike service, AC repair, Denting/painting, Battery
+
+#### Specialized Services (6 categories)
+- **Laundry**: Wash & fold, Dry cleaning, Ironing, Stain removal, Premium care
+- **Tailoring**: Alterations, Stitching, Embroidery, Uniforms, Bridal wear
+- **Pet Care**: Dog walking, Pet grooming, Pet sitting, Vet visits, Training
+- **Child Care**: Babysitting, Nanny, Day care, Tutoring, Activity classes
+- **Elder Care**: Nursing, Companion care, Physiotherapy, Medication help, Daily assistance
+- **Other**: Custom requests for specialized services
 
 ## 🛠️ Tech Stack
 
@@ -67,6 +148,8 @@ npm run preview
 - **Authentication**: Mock auth with role-based access (customer/worker/admin)
 - **Build Tool**: Vite
 - **Icons**: Lucide React
+- **Images**: Storyset SVG illustrations (300+ images)
+- **Responsive Design**: Mobile-first with desktop optimizations
 
 ## 📦 Installation
 
@@ -98,19 +181,27 @@ npm run build
 ├── package.json
 ├── package-lock.json
 ├── .env.example
-├── SETUP.md
+├── README.md
+├── USER_MANUAL.md
 └── src/
     ├── components/
     │   ├── Auth.tsx
     │   ├── AdminDashboard.tsx
+    │   ├── BottomNav.tsx
+    │   ├── CategoryPicker.tsx
     │   ├── CustomerDashboard.tsx
-    │   ├── WorkerDashboard.tsx
+    │   ├── Illustration.tsx
+    │   ├── InstallButton.tsx
     │   ├── ServiceRequestForm.tsx
-    │   └── WorkerProfileForm.tsx
-    └── lib/
-        ├── db.ts
-        ├── hooks.ts
-        └── types.ts
+    │   ├── WorkerDashboard.tsx
+    │   ├── WorkerProfileForm.tsx
+    │   └── WorkTypeCards.tsx
+    ├── lib/
+    │   ├── categoryConfig.ts
+    │   ├── db.ts
+    │   ├── hooks.ts
+    │   └── types.ts
+    └── App.tsx
 ```
 
 ## 🔐 Authentication
@@ -145,37 +236,32 @@ The app uses a mock authentication system with demo accounts:
 ### Core Entities
 - **Users**: Customer profiles with contact information
 - **Workers**: Service provider profiles with skills, rates, and ratings
-- **Service Requests**: Job requests with workflow status tracking
-- **Service Categories**: Available service types (AC, Plumbing, Electrical, Carpentry, Other)
-
-Note: currency in the UI is **MVR**.
+- **Service Requests**: Job requests with workflow status tracking, categories, and subcategories
+- **Service Categories**: 60+ service types with 300+ subcategories
+- **Reviews**: Customer feedback and ratings for workers
 
 ### Workflow States
 Each service request progresses through these states:
 - `open` → `pending_customer_confirmation` → `inspection_pending_worker_proposal` → `inspection_pending_customer_confirmation` → `inspection_scheduled` → `inspection_completed_pending_customer_confirm` → `awaiting_quote` → `quote_pending_approval` → `work_pending_worker_schedule` → `work_pending_customer_confirmation` → `work_scheduled` → `work_completed_pending_customer_confirm` → `payment_pending` → `completed`
 
-## 🎨 UI Components
+## 🎨 UI Components & Features
 
-### Customer Dashboard Tabs
-- **Find Workers**: Search and browse available workers
-- **New / Waiting**: View open requests
-- **Confirm Worker**: Accept worker proposals
-- **Inspection**: Manage inspection scheduling and confirmation
-- **Quote / Price**: Review and approve quotes
-- **Work Schedule**: Confirm work schedules
-- **Completion**: Confirm work completion
-- **Payment**: View payment status
-- **Completed**: View finished jobs
+### Responsive Design
+- **Mobile-First**: Optimized for all screen sizes
+- **Desktop Enhancements**: Improved layouts for PC views with wider containers and better grid systems
+- **Touch-Friendly**: Optimized interface elements for mobile devices
+- **Adaptive Grids**: Dynamic column layouts (1-6 columns based on screen size)
 
-### Worker Dashboard Tabs
-- **Browse Requests**: View and accept new job requests
-- **Inspection**: Propose and complete inspections
-- **Quote**: Submit price quotes
-- **Schedule Work**: Plan and schedule work
-- **Work**: Manage ongoing jobs
-- **Completion**: Track completion confirmations
-- **Payment**: Mark payment status
-- **Completed**: View finished jobs
+### Category Selection
+- **Visual Cards**: Illustrated category cards with Storyset SVG images
+- **Search Functionality**: Real-time search across categories and subcategories
+- **Subcategory Support**: 300+ subcategories for precise service matching
+- **Smart Filtering**: Category and subcategory filters with clear options
+
+### Dashboard Features
+- **Customer Dashboard**: My Requests, New Request, Needs Action, Find Workers, Completed tabs
+- **Worker Dashboard**: Browse, Assigned, Completed, Action Needed, Profile tabs
+- **Admin Dashboard**: Overview, Customers, Workers, Jobs, Settings tabs
 
 ## 🔄 Real-time Features
 
@@ -186,16 +272,32 @@ Each service request progresses through these states:
 ## 🧪 Testing
 
 The application includes comprehensive mock data seeding and can be tested with:
-- Different user roles (customer/worker)
-- Complete workflow scenarios
+- Different user roles (customer/worker/admin)
+- Complete workflow scenarios across all 60+ categories
 - Edge cases and error handling
+- Responsive design testing across devices
+- Search and filter functionality
 
 ## 📱 Responsive Design
 
-- Mobile-first approach with Tailwind CSS
-- Responsive navigation and layouts
-- Touch-friendly interface elements
-- Optimized for all screen sizes
+### Mobile (< 768px)
+- Single column layouts
+- Touch-optimized buttons and inputs
+- Bottom navigation for easy thumb access
+- Compact category cards (2 columns)
+
+### Tablet (768px - 1024px)
+- Two to three column layouts
+- Optimized spacing and touch targets
+- Side navigation elements
+- Medium category grids (3-4 columns)
+
+### Desktop (> 1024px)
+- Wide layouts with max-w-7xl containers
+- Four to six column grids for categories
+- Enhanced hover effects and micro-interactions
+- Optimized spacing and visual hierarchy
+- Clear filter layouts with dedicated sections
 
 ## 🔧 Development
 
@@ -204,11 +306,11 @@ The application includes comprehensive mock data seeding and can be tested with:
 - `npm run build` - Build for production
 - `npm run preview` - Preview production build
 
-### Code Style
-- TypeScript strict mode enabled
-- ESLint configuration for code quality
-- Consistent naming conventions
-- Component-based architecture
+### Key Components
+- **CategoryPicker**: Advanced category and subcategory selection with search
+- **WorkTypeCards**: Responsive category grid with Storyset illustrations
+- **Illustration**: Reusable image component with fallback handling
+- **Dashboards**: Role-based interfaces with responsive layouts
 
 ## 🚀 Deployment
 
@@ -218,32 +320,48 @@ The application is ready for deployment to any static hosting service:
 - GitHub Pages
 - AWS S3 + CloudFront
 
-## 📈 Future Enhancements
+## 📈 Recent Enhancements
 
-- Real messaging system between customers and workers
-- Photo/file upload for job documentation
-- Payment gateway integration
-- Mobile app development
-- Advanced filtering and search
-- Notification system
-- Analytics dashboard
+### v2.0 - Service Category Expansion
+- **60 Work Categories**: Expanded from 16 to 60+ service types
+- **300+ Subcategories**: Detailed service classifications
+- **Storyset Images**: Professional SVG illustrations for all categories
+- **Smart Search**: Real-time filtering across categories and subcategories
+
+### v1.5 - Responsive Design Improvements
+- **Desktop Optimization**: Enhanced layouts for PC views
+- **Grid Improvements**: 4-6 column layouts on desktop
+- **Hover Effects**: Enhanced micro-interactions and visual feedback
+- **Container Widths**: Increased to max-w-7xl for better space utilization
+
+### v1.0 - Core Platform
+- **Complete Workflow**: Full job lifecycle management
+- **Role-Based Access**: Customer, Worker, and Admin interfaces
+- **Real-time Updates**: Live UI synchronization
+- **Review System**: Customer feedback and ratings
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
 4. Add tests if applicable
-5. Submit a pull request
+5. Commit your changes (`git commit -m 'Add amazing feature'`)
+6. Push to the branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## 📞 Support
 
-For support and questions, please open an issue in the repository.
+For support and questions:
+- **Email**: retey.ay@hotmail.com
+- **GitHub**: https://github.com/rettey8810-byte/Fannu-Bazaar/issues
+- **Live Demo**: https://fannu-bazaar.vercel.app/
 
 ---
 
-Built with ❤️ for the Fannu Bazaar service marketplace platform.
+Built with ❤️ for Fannu Bazaar service marketplace platform.
+*Last Updated: March 7, 2026*

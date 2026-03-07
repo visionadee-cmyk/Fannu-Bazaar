@@ -1,6 +1,6 @@
 # Fannu Bazaar - User Manual
 
-Complete guide for using the Fannu Bazaar service marketplace platform.
+Complete guide for using the Fannu Bazaar service marketplace platform with 60+ work categories and advanced features.
 
 ---
 
@@ -10,7 +10,8 @@ Complete guide for using the Fannu Bazaar service marketplace platform.
 2. [Customer Guide](#customer-guide)
 3. [Worker Guide](#worker-guide)
 4. [Admin Guide](#admin-guide)
-5. [Troubleshooting](#troubleshooting)
+5. [Service Categories](#service-categories)
+6. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -32,7 +33,7 @@ For testing purposes, you can use these demo accounts:
 
 | Role | Email | Password |
 |------|-------|----------|
-| Admin | `retey.ay@hotmail.com` | `Adhu1447` |
+| Admin | `admin@demo.com` | `admin123` |
 | Customer | `customer@demo.com` | `demo123` |
 | Worker | `worker@demo.com` | `demo123` |
 
@@ -45,23 +46,24 @@ For testing purposes, you can use these demo accounts:
 The Customer Dashboard provides everything you need to manage service requests:
 
 - **My Requests**: View all your active service requests
-- **New Request**: Create a new service request
+- **New Request**: Create a new service request with advanced category selection
 - **Needs Action**: Requests requiring your attention
-- **Find Workers**: Browse and search for skilled workers
-- **Completed**: View your completed jobs
+- **Find Workers**: Browse and search for skilled workers across 60+ categories
+- **Completed**: View your completed jobs and leave reviews
 
 ### Creating a Service Request
 
 1. Click **"New Request"** tab
 2. Fill in the service details:
    - **Title**: Brief description of what you need
-   - **Category**: Select from AC, Plumbing, Electrical, Carpentry, Cleaning, Painting, Appliance, Pest Control, or Other
-   - **Description**: Detailed explanation of the work needed
+   - **Category**: Select from 60+ service categories with visual cards
+   - **Subcategory**: Choose specific service type (5-6 options per category)
+   - **Description**: Detailed explanation of work needed
    - **Location**: Where the service is needed
    - **Budget**: Your expected budget in MVR
    - **Urgency**: Low, Medium, or High
 3. Click **"Create Request"**
-4. Your request is now visible to workers
+4. Your request is now visible to workers in that category
 
 ### Finding Workers
 
@@ -93,6 +95,7 @@ The Customer Dashboard provides everything you need to manage service requests:
 3. **Approve Quote**: Accept the price quote submitted by worker
 4. **Confirm Work Schedule**: Approve the proposed work schedule
 5. **Confirm Completion**: Verify work is completed satisfactorily
+6. **Leave Review**: Rate the worker and provide feedback
 
 ### Reviewing Workers
 
@@ -111,11 +114,11 @@ After a job is completed:
 
 The Worker Dashboard helps you manage your service business:
 
-- **Browse**: Find new service requests
-- **My Jobs**: View your assigned active jobs
+- **Browse**: Find new service requests with advanced filtering
+- **Assigned**: View your assigned active jobs
 - **Action Needed**: Jobs requiring your immediate attention
-- **Completed**: View your finished jobs
-- **Profile**: Manage your skills and information
+- **Completed**: View your finished jobs and earnings
+- **Profile**: Manage your skills, categories, and information
 
 ### Finding Jobs
 
@@ -165,16 +168,18 @@ A strong profile helps you get more jobs:
 
 1. Click **"Profile"** tab
 2. **Update Information**:
-   - Skills: List your expertise areas
-   - Categories: Select service categories you offer
-   - About: Write a professional bio
-   - Contact: Phone, WhatsApp, Viber
-   - Photo: Add a profile picture
+   - **Skills**: List all your expertise areas
+   - **Categories**: Select all service categories you offer (from 60+ options)
+   - **About**: Write a professional bio highlighting your experience
+   - **Contact**: Add phone, WhatsApp, and Viber numbers
+   - **Photo**: Upload a professional profile picture
+   - **Rates**: Set your hourly or project rates in MVR
 
 3. **Build Your Reputation**:
-   - Complete jobs on time
-   - Provide quality work
-   - Earn good ratings and reviews
+   - Complete jobs on time and professionally
+   - Provide high-quality workmanship
+   - Earn good ratings and positive reviews
+   - Respond quickly to new opportunities
 
 ---
 
@@ -249,20 +254,61 @@ Displays highest-rated workers based on:
 
 #### Account Information
 
-- **Admin Email**: `retey.ay@hotmail.com`
-- **Default Password**: `admin123`
+- **Admin Account**
+- **Email**: `admin@demo.com`
+- **Role**: Admin
+- **Password**: `admin123`
 
----
+The platform offers 60+ service categories organized into 8 main groups:
 
-## Troubleshooting
+### Home Services (12 Categories)
+**AC, Plumbing, Electrical, Carpentry, Cleaning, Painting, Appliance, Pest Control, Masonry, Welding, Moving, Gardening, plus specialized home services**
+
+Each category includes 5-6 specific subcategories for precise service matching.
+
+### Construction & Renovation (8 Categories)
+**Civil Works, Roofing, Flooring, Waterproofing, Interior Design, Renovation, Scaffolding, Demolition, plus construction services**
+
+### Technical & IT (8 Categories)
+**IT Support, CCTV, Networking, Security Systems, Solar, Generator, Elevator, Fire Safety, plus technical services**
+
+### Beauty & Personal Care (6 Categories)
+**Beauty Services, Barber, Spa, Massage, Fitness, Yoga, plus personal care services**
+
+### Events & Media (8 Categories)
+**Photography, Videography, Event Planning, Catering, Bartending, DJ, Decoration, Entertainment, plus media services**
+
+### Professional Services (6 Categories)
+**Tutoring, Legal, Accounting, Consulting, Translation, Writing, plus professional services**
+
+### Transportation & Logistics (6 Categories)
+**Delivery, Driving, Logistics, Courier, Bike Repair, Auto Repair, plus transport services**
+
+### Specialized Services (6 Categories)
+**Laundry, Tailoring, Pet Care, Child Care, Elder Care, plus specialized services**
+
+### Category Features
+
+#### Visual Selection
+- **Storyset Images**: Professional SVG illustrations for each category
+- **Color Coding**: Visual distinction between category groups
+- **Hover Effects**: Interactive cards with smooth animations
+- **Responsive Grid**: Optimized layouts for all screen sizes
+
+#### Smart Search
+- **Real-time Filtering**: Instant results as you type
+- **Category Matching**: Shows categories matching your search
+- **Subcategory Search**: Find specific services within categories
+- **Result Count**: See how many categories match your search
 
 ### Login Issues
 
 **"Invalid email or password"**
-- Check your email is entered correctly
-- Verify password (case-sensitive)
-- For admin: Use `retey.ay@hotmail.com` with `Adhu1447`
+- Verify email is entered correctly (check for typos)
+- Confirm password is case-sensitive
+- For admin: Use `admin@demo.com` with `admin123`
 - Try clearing browser cache and cookies
+- Ensure caps lock is off
 
 **"Account not found"**
 - The account may be inactive (contact admin)
@@ -318,4 +364,66 @@ For issues not covered here:
 
 ---
 
-*Last Updated: March 5, 2025*
+## Tips for Success
+
+### For Customers
+
+1. **Be Specific**: Clear, detailed descriptions attract better quotes
+2. **Set Realistic Budgets**: Fair pricing attracts quality workers
+3. **Use Subcategories**: Select specific subcategories for accurate matching
+4. **Respond Promptly**: Quick responses keep projects moving
+5. **Leave Reviews**: Help other customers and reward good workers
+6. **Use Search**: Take advantage of advanced search and filtering
+7. **Check Profiles**: Review worker ratings and experience before selecting
+
+### For Workers
+
+1. **Complete Your Profile**: More information = more trust and jobs
+2. **Select Relevant Categories**: Choose all service types you can perform
+3. **Respond Quickly**: Fast responses win more opportunities
+4. **Be Professional**: Clear communication builds your reputation
+5. **Deliver Quality**: Good work leads to better ratings and reviews
+6. **Use Photos**: Professional profile pictures increase trust
+7. **Set Fair Prices**: Competitive rates attract more customers
+
+### For Admins
+
+1. **Monitor Regularly**: Check platform health and user activity
+2. **Verify Workers**: Ensure worker profiles are complete and accurate
+3. **Respond to Issues**: Address user problems quickly
+4. **Track Metrics**: Use statistics to improve platform performance
+5. **Maintain Quality**: Remove low-quality or fraudulent accounts
+6. **Update Categories**: Keep service categories relevant and comprehensive
+
+---
+
+## Platform Features Summary
+
+### ✅ Current Capabilities
+- 60+ service categories with 300+ subcategories
+- Advanced search and filtering system
+- Complete job lifecycle management
+- Real-time updates and notifications
+- Responsive design for all devices
+- Professional UI with Storyset illustrations
+- Review and rating system
+- Role-based access control
+- Admin oversight tools
+
+### 🔄 Real-time Updates
+- Live dashboard synchronization
+- Instant status changes
+- Real-time search results
+- Automatic UI updates
+
+### 📱 Responsive Design
+- Mobile-optimized layouts
+- Tablet-friendly interfaces
+- Desktop-enhanced features
+- Touch-optimized controls
+- Adaptive grid systems
+
+---
+
+*Last Updated: March 7, 2026*
+*Platform Version: v2.0 - Service Category Expansion*
