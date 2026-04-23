@@ -10,7 +10,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.4",
+    "firebase": "^10.12.4",
     "framer-motion": "^12.35.0",
     "lucide-react": "^0.323.0",
     "react": "^18.2.0",

@@ -132,12 +132,20 @@ export type Review = {
   requestId: string
   customerId: string
   workerId: string
-  rating: 1 | 2 | 3 | 4 | 5
+  rating: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10
   comment?: string
 }
 
+export type TimeProposal = {
+  proposedAt: string
+  scheduledFor: string
+  proposedBy: 'worker' | 'customer'
+  status: 'pending' | 'accepted' | 'rejected'
+  rejectionReason?: string
+}
+
 export type InspectionInfo = {
-  proposedAt?: string
+  proposals?: TimeProposal[]
   scheduledFor?: string
   customerConfirmedAt?: string
   workerConfirmedAt?: string
@@ -161,6 +169,7 @@ export type QuoteOffer = {
 }
 
 export type WorkInfo = {
+  proposals?: TimeProposal[]
   scheduledFor?: string
   scheduledByWorkerAt?: string
   confirmedByCustomerAt?: string
@@ -171,7 +180,21 @@ export type WorkInfo = {
 export type PaymentInfo = {
   status?: 'pending' | 'paid'
   markedAt?: string
+  paidOnSpot?: boolean
+  customerMarkedAt?: string
+  workerConfirmedAt?: string
 }
+
+export type Invoice = {
+  id: string
+  amount: number
+  description: string
+  generatedAt: string
+  dueDate?: string
+  status: 'pending' | 'paid' | 'overdue'
+}
+
+export type RecurringFrequency = 'weekly' | 'biweekly' | 'monthly' | 'quarterly' | 'yearly'
 
 export type ServiceRequest = {
   id: string
@@ -185,6 +208,15 @@ export type ServiceRequest = {
   urgency: 'low' | 'medium' | 'high'
   location: string
 
+  requiresInspection?: boolean
+
+  contactName?: string
+  contactPhone?: string
+
+  isRecurring?: boolean
+  recurringFrequency?: RecurringFrequency
+  recurringDiscount?: number
+
   customerId: string
   interestedWorkerIds?: string[]
   acceptedWorkerId?: string
@@ -195,6 +227,19 @@ export type ServiceRequest = {
   quote?: QuoteInfo
   work?: WorkInfo
   payment?: PaymentInfo
+  invoice?: Invoice
+}
+
+export type Notification = {
+  id: string
+  userId: string
+  userRole: 'customer' | 'worker' | 'admin'
+  type: 'worker_selected' | 'quote_received' | 'inspection_scheduled' | 'work_scheduled' | 'work_completed' | 'payment_received' | 'worker_interested' | 'invoice_ready' | 'payment_confirmed'
+  title: string
+  message: string
+  requestId?: string
+  read: boolean
+  createdAt: string
 }
 
 export type DB = {
@@ -203,4 +248,5 @@ export type DB = {
   workers: WorkerProfile[]
   requests: ServiceRequest[]
   reviews: Review[]
+  notifications: Notification[]
 }

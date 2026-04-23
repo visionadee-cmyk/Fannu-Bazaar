@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import {
   acceptRequest,
@@ -9,6 +9,10 @@ import {
   submitQuote,
   workerCompleteInspection,
   workerCompleteWork,
+  workerProposeAlternateInspection,
+  workerProposeAlternateWorkSchedule,
+  workerConfirmPaymentReceived,
+  checkUpcomingReminders,
 } from '../lib/db'
 import { useDBSnapshot } from '../lib/hooks'
 import type { ServiceCategory, ServiceRequest, SessionUser } from '../lib/types'
@@ -17,7 +21,7 @@ import Illustration from './Illustration'
 import CategoryPicker from './CategoryPicker'
 import {
   Search, Briefcase, CheckCircle, Clock, Star, User,
-  Wrench, DollarSign, Calendar, MapPin
+  Wrench, DollarSign, Calendar, MapPin, AlertCircle, FileText, Check, RefreshCw, Phone
 } from 'lucide-react'
 
 const THEME = {
@@ -48,6 +52,16 @@ export default function WorkerDashboard({ user }: { user: SessionUser }) {
   const [browseCategory, setBrowseCategory] = useState<ServiceCategory | 'All'>('All')
   const [browseSubcategory, setBrowseSubcategory] = useState<string | undefined>(undefined)
   const [browseQuery, setBrowseQuery] = useState('')
+  const [showBrowseFiltersMobile, setShowBrowseFiltersMobile] = useState(false)
+  const [reminders, setReminders] = useState<ReturnType<typeof checkUpcomingReminders>>([])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setReminders(checkUpcomingReminders(user.id, 'worker'))
+    }, 60000)
+    setReminders(checkUpcomingReminders(user.id, 'worker'))
+    return () => clearInterval(interval)
+  }, [user.id])
 
   const myAssigned = useMemo(() => db.requests.filter((r) => r.acceptedWorkerId === user.id), [db.requests, user.id])
   const myActiveAssigned = useMemo(() => myAssigned.filter((r) => r.status !== 'completed'), [myAssigned])
@@ -57,7 +71,7 @@ export default function WorkerDashboard({ user }: { user: SessionUser }) {
     const q = browseQuery.trim().toLowerCase()
     const sub = (browseSubcategory ?? '').trim().toLowerCase()
     return db.requests
-      .filter((r) => r.status === 'open')
+      .filter((r) => r.status === 'open' || r.status === 'pending_customer_confirmation')
       .filter((r) => (browseCategory === 'All' ? true : r.category === browseCategory))
       .filter((r) => (!sub ? true : (r.subcategory ?? '').toLowerCase().includes(sub) || r.title.toLowerCase().includes(sub) || r.description.toLowerCase().includes(sub)))
       .filter((r) => !q || r.title.toLowerCase().includes(q) || r.description.toLowerCase().includes(q) || r.location.toLowerCase().includes(q) || (r.subcategory ?? '').toLowerCase().includes(q))
@@ -71,6 +85,14 @@ export default function WorkerDashboard({ user }: { user: SessionUser }) {
     { id: 'completed', label: 'Completed', count: myCompletedAssigned.length, icon: CheckCircle },
     { id: 'profile', label: 'My Profile', count: null, icon: User },
   ]
+
+  const mobileTabLabel = (id: (typeof tabs)[number]['id']) => {
+    if (id === 'browse') return 'Browse'
+    if (id === 'assigned') return 'My Jobs'
+    if (id === 'actions') return 'Actions'
+    if (id === 'completed') return 'Done'
+    return 'Profile'
+  }
 
   return (
     <div className="min-h-screen" style={{ background: THEME.bg }}>
@@ -109,12 +131,47 @@ export default function WorkerDashboard({ user }: { user: SessionUser }) {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="sm:hidden pb-4">
+            <div className="grid grid-cols-2 gap-2">
+              {tabs.map((tab) => {
+                const Icon = tab.icon
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all ${isActive ? 'text-white shadow-lg shadow-green-500/25' : 'text-gray-700 bg-white hover:bg-gray-50 ring-1 ring-gray-200'}`}
+                    style={isActive ? { background: THEME.primary } : {}}
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{mobileTabLabel(tab.id as any)}</span>
+                    </span>
+                    {tab.count !== null && tab.count > 0 && (
+                      <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-xs ${isActive ? 'bg-white/20' : 'bg-gray-200 text-gray-700'}`}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div
+            className="hidden sm:flex flex-nowrap gap-1 overflow-x-auto pb-4 snap-x snap-mandatory"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
             {tabs.map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
               return (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all whitespace-nowrap ${isActive ? 'text-white shadow-lg shadow-green-500/25' : 'text-gray-600 hover:bg-gray-100'}`} style={isActive ? { background: THEME.primary } : {}}>
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`snap-start flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all whitespace-nowrap ${isActive ? 'text-white shadow-lg shadow-green-500/25' : 'text-gray-600 hover:bg-gray-100'}`}
+                  style={isActive ? { background: THEME.primary } : {}}
+                >
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
                   {tab.count !== null && tab.count > 0 && <span className={`px-2 py-0.5 rounded-full text-xs ${isActive ? 'bg-white/20' : 'bg-gray-200 text-gray-600'}`}>{tab.count}</span>}
@@ -125,15 +182,89 @@ export default function WorkerDashboard({ user }: { user: SessionUser }) {
         </div>
       </motion.div>
 
+      {/* Reminders Banner */}
+      {reminders.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          {reminders.map((r) => (
+            <div
+              key={`${r.requestId}-${r.type}`}
+              className={`mb-2 p-3 rounded-xl flex items-center gap-3 ${
+                r.urgency === 'now' ? 'bg-red-100 text-red-800 border border-red-200' :
+                r.urgency === '15min' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                'bg-blue-100 text-blue-800 border border-blue-200'
+              }`}
+            >
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <div className="flex-1">
+                <span className="font-semibold">
+                  {r.urgency === 'now' ? 'Starting now:' : r.urgency === '15min' ? '15 minutes:' : '30 minutes:'}
+                </span>{' '}
+                {r.type === 'inspection' ? 'Inspection' : 'Work'} for "{r.title}" at {formatIso(r.scheduledFor)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
           {activeTab === 'browse' && (
             <div className="space-y-6">
-              {/* Filters */}
-              <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
-                  <div className="md:col-span-1 lg:col-span-2">
+              {/* Mobile: Posted jobs first + compact controls */}
+              <div className="sm:hidden bg-white rounded-2xl shadow-lg border border-gray-100 p-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={browseQuery}
+                    onChange={(e) => setBrowseQuery(e.target.value)}
+                    placeholder="Search jobs..."
+                    className="min-w-0 flex-1 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowBrowseFiltersMobile((v) => !v)}
+                    className="shrink-0 rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-200"
+                  >
+                    Filters
+                  </button>
+                </div>
+
+                {showBrowseFiltersMobile && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <CategoryPicker
+                      allowAllCategory
+                      category={browseCategory}
+                      subcategory={browseSubcategory}
+                      onChange={(next) => {
+                        setBrowseCategory(next.category)
+                        setBrowseSubcategory(next.subcategory)
+                        setShowBrowseFiltersMobile(false)
+                      }}
+                      className="mb-4"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setBrowseCategory('All')
+                        setBrowseSubcategory(undefined)
+                        setBrowseQuery('')
+                        setShowBrowseFiltersMobile(false)
+                      }}
+                      className="w-full rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-200 transition-colors"
+                    >
+                      Clear Filters
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Desktop/tablet: full filters */}
+              <div className="hidden sm:block bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6">
+                <div className="grid gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
+                  <div className="md:col-span-1 lg:col-span-2 overflow-hidden">
                     <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
                     <CategoryPicker
                       allowAllCategory
@@ -158,6 +289,7 @@ export default function WorkerDashboard({ user }: { user: SessionUser }) {
                   </div>
                   <div className="flex items-end">
                     <button
+                      type="button"
                       onClick={() => {
                         setBrowseCategory('All')
                         setBrowseSubcategory(undefined)
@@ -171,7 +303,7 @@ export default function WorkerDashboard({ user }: { user: SessionUser }) {
                 </div>
               </div>
 
-              {/* Jobs List */}
+              {/* Posted Jobs List */}
               {openRequests.length === 0 ? (
                 <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-12 text-center">
                   <Illustration
@@ -291,9 +423,14 @@ function OpenRequestCard({ req, workerId, recommended }: { req: ServiceRequest; 
       <div className="p-6 border-b border-gray-100" style={{ background: THEME.gray50 }}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               <h3 className="text-lg font-bold text-gray-900">{req.title}</h3>
               {recommended && <span className="px-2.5 py-1 rounded-full text-xs bg-green-100 text-green-700 font-medium flex items-center gap-1"><Star className="w-3 h-3" /> Recommended</span>}
+              {req.isRecurring && (
+                <span className="px-2.5 py-1 rounded-full text-xs bg-blue-100 text-blue-700 font-medium flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3" /> {req.recurringFrequency} • {req.recurringDiscount}% off
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-4 text-sm text-gray-500 flex-wrap">
               <span className="flex items-center gap-1.5"><Wrench className="w-4 h-4" style={{ color: THEME.primary }} />{req.category}</span>
@@ -309,6 +446,13 @@ function OpenRequestCard({ req, workerId, recommended }: { req: ServiceRequest; 
         <div className="flex items-center gap-2 mb-4">
           <span className="text-sm text-gray-500">Urgency: <span className="font-medium" style={{ color: req.urgency === 'high' ? '#f97316' : '#6b7280' }}>{req.urgency}</span></span>
         </div>
+        {(req.contactName || req.contactPhone) && (
+          <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-100">
+            <p className="text-sm font-medium text-gray-800 mb-1">Contact on-site:</p>
+            {req.contactName && <p className="text-sm text-gray-600 flex items-center gap-1"><User className="w-3 h-3" /> {req.contactName}</p>}
+            {req.contactPhone && <p className="text-sm text-gray-600 flex items-center gap-1"><Phone className="w-3 h-3" /> {req.contactPhone}</p>}
+          </div>
+        )}
         <div className="grid gap-4">
           <button onClick={() => acceptRequest({ requestId: req.id, workerId })} className={`w-full py-3.5 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all ${alreadyInterested ? 'bg-gray-100 text-gray-600 cursor-default' : 'text-white'}`} style={alreadyInterested ? {} : { background: THEME.primary }}>
             {alreadyInterested ? 'Already Interested ✓' : "I'm Interested"}
@@ -372,8 +516,169 @@ function WorkerJobCard({ req }: { req: ServiceRequest }) {
   )
 }
 
-function WorkerActionCard({ req, workerId }: { req: ServiceRequest; workerId: string }) {
+function InspectionProposalUI({ req, workerId }: { req: ServiceRequest; workerId: string }) {
   const [when, setWhen] = useState(() => new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16))
+  const pendingProposal = req.inspection?.proposals?.find((p) => p.status === 'pending' && p.proposedBy === 'customer')
+
+  if (pendingProposal) {
+    return (
+      <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50">
+        <p className="text-sm font-semibold text-gray-800 mb-2">
+          Customer proposed alternate time: <span className="font-bold">{formatIso(pendingProposal.scheduledFor)}</span>
+        </p>
+        {pendingProposal.rejectionReason && (
+          <p className="text-xs text-rose-600 mb-3">Reason: {pendingProposal.rejectionReason}</p>
+        )}
+        <div className="flex gap-3">
+          <button
+            onClick={() => proposeInspection({ requestId: req.id, workerId, whenIso: pendingProposal.scheduledFor })}
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+            style={{ background: THEME.primary }}
+          >
+            Accept
+          </button>
+          <button
+            onClick={() => {
+              const newTime = new Date(when).toISOString()
+              workerProposeAlternateInspection({ requestId: req.id, workerId, whenIso: newTime })
+            }}
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+            style={{ background: THEME.amber }}
+          >
+            Propose Different
+          </button>
+        </div>
+        <input
+          type="datetime-local"
+          className="w-full mt-3 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800"
+          value={when}
+          onChange={(e) => setWhen(e.target.value)}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 rounded-2xl border border-purple-200 bg-purple-50">
+      <label className="block text-sm font-semibold text-gray-800 mb-3">Propose Inspection Date/Time</label>
+      <input
+        type="datetime-local"
+        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 mb-3"
+        value={when}
+        onChange={(e) => setWhen(e.target.value)}
+      />
+      <button
+        onClick={() => proposeInspection({ requestId: req.id, workerId, whenIso: new Date(when).toISOString() })}
+        className="w-full py-3.5 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+        style={{ background: THEME.primary }}
+      >
+        Propose Inspection
+      </button>
+    </div>
+  )
+}
+
+function WorkScheduleProposalUI({ req, workerId }: { req: ServiceRequest; workerId: string }) {
+  const [when, setWhen] = useState(() => new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16))
+  const pendingProposal = req.work?.proposals?.find((p) => p.status === 'pending' && p.proposedBy === 'customer')
+
+  if (pendingProposal) {
+    return (
+      <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50">
+        <p className="text-sm font-semibold text-gray-800 mb-2">
+          Customer proposed alternate time: <span className="font-bold">{formatIso(pendingProposal.scheduledFor)}</span>
+        </p>
+        {pendingProposal.rejectionReason && (
+          <p className="text-xs text-rose-600 mb-3">Reason: {pendingProposal.rejectionReason}</p>
+        )}
+        <div className="flex gap-3">
+          <button
+            onClick={() => scheduleWork({ requestId: req.id, workerId, whenIso: pendingProposal.scheduledFor })}
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+            style={{ background: THEME.primary }}
+          >
+            Accept
+          </button>
+          <button
+            onClick={() => {
+              const newTime = new Date(when).toISOString()
+              workerProposeAlternateWorkSchedule({ requestId: req.id, workerId, whenIso: newTime })
+            }}
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+            style={{ background: THEME.amber }}
+          >
+            Propose Different
+          </button>
+        </div>
+        <input
+          type="datetime-local"
+          className="w-full mt-3 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800"
+          value={when}
+          onChange={(e) => setWhen(e.target.value)}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 rounded-2xl border border-cyan-200 bg-cyan-50">
+      <label className="block text-sm font-semibold text-gray-800 mb-3">Schedule Work Date/Time</label>
+      <input
+        type="datetime-local"
+        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 mb-3"
+        value={when}
+        onChange={(e) => setWhen(e.target.value)}
+      />
+      <button
+        onClick={() => scheduleWork({ requestId: req.id, workerId, whenIso: new Date(when).toISOString() })}
+        className="w-full py-3.5 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+        style={{ background: THEME.primary }}
+      >
+        Schedule Work
+      </button>
+    </div>
+  )
+}
+
+function PaymentConfirmationUI({ req, workerId }: { req: ServiceRequest; workerId: string }) {
+  return (
+    <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50">
+      {req.invoice ? (
+        <>
+          <div className="flex items-center gap-2 mb-3">
+            <FileText className="w-5 h-5 text-emerald-600" />
+            <span className="text-sm font-semibold text-gray-800">Invoice #{req.invoice.id.slice(-6)}</span>
+          </div>
+          <div className="text-2xl font-bold mb-2" style={{ color: THEME.primary }}>MVR {req.invoice.amount}</div>
+          <p className="text-sm text-gray-600 mb-3">{req.invoice.description}</p>
+        </>
+      ) : (
+        <p className="text-sm text-gray-600 mb-3">No invoice generated. Customer may mark as paid on spot.</p>
+      )}
+
+      {req.payment?.paidOnSpot ? (
+        <div className="p-3 rounded-xl bg-amber-100 border border-amber-200 mb-3">
+          <p className="text-sm text-amber-800 font-medium">Customer marked as "Paid on Spot"</p>
+          <p className="text-xs text-amber-700 mt-1">Please confirm you received the payment.</p>
+        </div>
+      ) : null}
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => workerConfirmPaymentReceived({ requestId: req.id, workerId })}
+          className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+          style={{ background: THEME.primary }}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <Check className="w-4 h-4" /> Confirm Received
+          </span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function WorkerActionCard({ req, workerId }: { req: ServiceRequest; workerId: string }) {
   const [amount, setAmount] = useState(1500)
   const [notes, setNotes] = useState('')
   const db = useDBSnapshot()
@@ -408,11 +713,7 @@ function WorkerActionCard({ req, workerId }: { req: ServiceRequest; workerId: st
         )}
 
         {req.status === 'inspection_pending_worker_proposal' && (
-          <div className="p-4 rounded-2xl border border-purple-200 bg-purple-50">
-            <label className="block text-sm font-semibold text-gray-800 mb-3">Propose Inspection Date/Time</label>
-            <input type="datetime-local" className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 mb-3" value={when} onChange={(e) => setWhen(e.target.value)} />
-            <button onClick={() => proposeInspection({ requestId: req.id, workerId, whenIso: new Date(when).toISOString() })} className="w-full py-3.5 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Propose Inspection</button>
-          </div>
+          <InspectionProposalUI req={req} workerId={workerId} />
         )}
 
         {req.status === 'inspection_scheduled' && (
@@ -440,11 +741,7 @@ function WorkerActionCard({ req, workerId }: { req: ServiceRequest; workerId: st
         )}
 
         {req.status === 'work_pending_worker_schedule' && (
-          <div className="p-4 rounded-2xl border border-cyan-200 bg-cyan-50">
-            <label className="block text-sm font-semibold text-gray-800 mb-3">Schedule Work Date/Time</label>
-            <input type="datetime-local" className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 mb-3" value={when} onChange={(e) => setWhen(e.target.value)} />
-            <button onClick={() => scheduleWork({ requestId: req.id, workerId, whenIso: new Date(when).toISOString() })} className="w-full py-3.5 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Schedule Work</button>
-          </div>
+          <WorkScheduleProposalUI req={req} workerId={workerId} />
         )}
 
         {req.status === 'work_scheduled' && (
@@ -455,15 +752,171 @@ function WorkerActionCard({ req, workerId }: { req: ServiceRequest; workerId: st
         )}
 
         {req.status === 'payment_pending' && (
-          <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50">
-            <p className="text-sm text-gray-600 mb-3">Payment is pending. Confirm when received.</p>
-            <div className="flex gap-3">
-              <button onClick={() => markPayment({ requestId: req.id, workerId, status: 'pending' })} className="flex-1 py-3.5 rounded-xl font-semibold border-2 border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors">Keep Pending</button>
-              <button onClick={() => markPayment({ requestId: req.id, workerId, status: 'paid' })} className="flex-1 py-3.5 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Mark Paid</button>
-            </div>
-          </div>
+          <PaymentConfirmationUI req={req} workerId={workerId} />
         )}
       </div>
     </CardShell>
+  )
+}
+
+function InspectionProposalUI({ req, workerId }: { req: ServiceRequest; workerId: string }) {
+  const [when, setWhen] = useState(() => new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16))
+  const pendingProposal = req.inspection?.proposals?.find((p) => p.status === 'pending' && p.proposedBy === 'customer')
+
+  if (pendingProposal) {
+    return (
+      <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50">
+        <p className="text-sm font-semibold text-gray-800 mb-2">
+          Customer proposed alternate time: <span className="font-bold">{formatIso(pendingProposal.scheduledFor)}</span>
+        </p>
+        {pendingProposal.rejectionReason && (
+          <p className="text-xs text-rose-600 mb-3">Reason: {pendingProposal.rejectionReason}</p>
+        )}
+        <div className="flex gap-3">
+          <button
+            onClick={() => proposeInspection({ requestId: req.id, workerId, whenIso: pendingProposal.scheduledFor })}
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+            style={{ background: THEME.primary }}
+          >
+            Accept
+          </button>
+          <button
+            onClick={() => {
+              const newTime = new Date(when).toISOString()
+              workerProposeAlternateInspection({ requestId: req.id, workerId, whenIso: newTime })
+            }}
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+            style={{ background: THEME.amber }}
+          >
+            Propose Different
+          </button>
+        </div>
+        <input
+          type="datetime-local"
+          className="w-full mt-3 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800"
+          value={when}
+          onChange={(e) => setWhen(e.target.value)}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 rounded-2xl border border-purple-200 bg-purple-50">
+      <label className="block text-sm font-semibold text-gray-800 mb-3">Propose Inspection Date/Time</label>
+      <input
+        type="datetime-local"
+        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 mb-3"
+        value={when}
+        onChange={(e) => setWhen(e.target.value)}
+      />
+      <button
+        onClick={() => proposeInspection({ requestId: req.id, workerId, whenIso: new Date(when).toISOString() })}
+        className="w-full py-3.5 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+        style={{ background: THEME.primary }}
+      >
+        Propose Inspection
+      </button>
+    </div>
+  )
+}
+
+function WorkScheduleProposalUI({ req, workerId }: { req: ServiceRequest; workerId: string }) {
+  const [when, setWhen] = useState(() => new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().slice(0, 16))
+  const pendingProposal = req.work?.proposals?.find((p) => p.status === 'pending' && p.proposedBy === 'customer')
+
+  if (pendingProposal) {
+    return (
+      <div className="p-4 rounded-2xl border border-amber-200 bg-amber-50">
+        <p className="text-sm font-semibold text-gray-800 mb-2">
+          Customer proposed alternate time: <span className="font-bold">{formatIso(pendingProposal.scheduledFor)}</span>
+        </p>
+        {pendingProposal.rejectionReason && (
+          <p className="text-xs text-rose-600 mb-3">Reason: {pendingProposal.rejectionReason}</p>
+        )}
+        <div className="flex gap-3">
+          <button
+            onClick={() => scheduleWork({ requestId: req.id, workerId, whenIso: pendingProposal.scheduledFor })}
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+            style={{ background: THEME.primary }}
+          >
+            Accept
+          </button>
+          <button
+            onClick={() => {
+              const newTime = new Date(when).toISOString()
+              workerProposeAlternateWorkSchedule({ requestId: req.id, workerId, whenIso: newTime })
+            }}
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+            style={{ background: THEME.amber }}
+          >
+            Propose Different
+          </button>
+        </div>
+        <input
+          type="datetime-local"
+          className="w-full mt-3 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-800"
+          value={when}
+          onChange={(e) => setWhen(e.target.value)}
+        />
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 rounded-2xl border border-cyan-200 bg-cyan-50">
+      <label className="block text-sm font-semibold text-gray-800 mb-3">Schedule Work Date/Time</label>
+      <input
+        type="datetime-local"
+        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500 mb-3"
+        value={when}
+        onChange={(e) => setWhen(e.target.value)}
+      />
+      <button
+        onClick={() => scheduleWork({ requestId: req.id, workerId, whenIso: new Date(when).toISOString() })}
+        className="w-full py-3.5 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+        style={{ background: THEME.primary }}
+      >
+        Schedule Work
+      </button>
+    </div>
+  )
+}
+
+function PaymentConfirmationUI({ req, workerId }: { req: ServiceRequest; workerId: string }) {
+  return (
+    <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50">
+      {req.invoice ? (
+        <>
+          <div className="flex items-center gap-2 mb-3">
+            <FileText className="w-5 h-5 text-emerald-600" />
+            <span className="text-sm font-semibold text-gray-800">Invoice #{req.invoice.id.slice(-6)}</span>
+          </div>
+          <div className="text-2xl font-bold mb-2" style={{ color: THEME.primary }}>MVR {req.invoice.amount}</div>
+          <p className="text-sm text-gray-600 mb-3">{req.invoice.description}</p>
+        </>
+      ) : (
+        <p className="text-sm text-gray-600 mb-3">No invoice generated. Customer may mark as paid on spot.</p>
+      )}
+
+      {req.payment?.paidOnSpot ? (
+        <div className="p-3 rounded-xl bg-amber-100 border border-amber-200 mb-3">
+          <p className="text-sm text-amber-800 font-medium">Customer marked as "Paid on Spot"</p>
+          <p className="text-xs text-amber-700 mt-1">Please confirm you received the payment.</p>
+        </div>
+      ) : null}
+
+      <div className="flex gap-3">
+        <button
+          onClick={() => workerConfirmPaymentReceived({ requestId: req.id, workerId })}
+          className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+          style={{ background: THEME.primary }}
+        >
+          <span className="flex items-center justify-center gap-2">
+            <Check className="w-4 h-4" /> Confirm Received
+          </span>
+        </button>
+      </div>
+    </div>
   )
 }

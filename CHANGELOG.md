@@ -2,6 +2,24 @@
 
 All notable changes to the Fannu Bazaar project will be documented in this file.
 
+## [2.1.0] - 2025-04-23
+
+### Added
+- **Full Workflow Implementation**: Complete end-to-end workflow with time negotiation and payment confirmation
+- **Time Negotiation**: Inspection and work schedule negotiation with reject reason and alternate time proposals
+- **Invoice Generation**: Generate invoices after work completion with amount and description
+- **Payment Confirmation**: Worker confirms payment receipt with "Paid on Spot" option
+- **In-App Reminders**: 30/15 minute reminders before inspection and work with color-coded urgency alerts
+- **Contact Person Fields**: Optional contact name and phone for on-site coordination
+- **Recurring Services**: Schedule recurring jobs with frequency (weekly, monthly, etc.) and discount requests
+- **Rating System**: 1-10 scale rating for workers after job completion
+- **Notification System**: Real-time notifications for all workflow events
+
+### Changed
+- **ServiceRequestForm**: Added contact person and recurring service sections
+- **CustomerDashboard**: Added time negotiation UI, invoice/payment flows, and reminders banner
+- **WorkerDashboard**: Added time negotiation UI, payment confirmation, and reminders banner
+
 ## [2.0.0] - 2025-03-05
 
 ### Added

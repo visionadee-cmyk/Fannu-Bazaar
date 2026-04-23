@@ -42,6 +42,9 @@ npm run preview
 - **Smart Search**: Search categories, subcategories, and workers with intelligent filtering
 - **Worker Discovery**: Browse and search for workers by service category with ratings and reviews
 - **Full Workflow Management**: Track jobs through every stage from request to payment
+- **Time Negotiation**: Accept or reject inspection/work schedule proposals with alternate time suggestions
+- **Contact Person**: Specify on-site contact name and phone for service coordination
+- **Recurring Services**: Schedule weekly, monthly, or custom recurring jobs with discount requests
 - **Real-time Updates**: Instant UI updates as workers accept and progress through jobs
 
 ### Worker Experience
@@ -52,15 +55,16 @@ npm run preview
 - **Profile Management**: Showcase skills, experience, ratings, and availability
 
 ### Complete Job Lifecycle
-1. **Request** → Customer creates service request with category and subcategory
+1. **Request** → Customer creates service request with category, subcategory, **inspection required flag**, **contact person**, and **recurring settings**
 2. **Interest / Quotations** → Multiple workers can mark interest and submit quotations
-3. **Select** → Customer selects a worker for inspection OR chooses a quotation offer
-4. **Inspection** → Worker proposes inspection time → Customer confirms → Both confirm completion
-5. **Quote** → Worker submits quote → Customer approves
-6. **Schedule** → Worker schedules work → Customer confirms
-7. **Work** → Worker completes job → Customer confirms completion
-8. **Payment** → Worker marks payment status
-9. **Complete** → Job marked as completed
+3. **Select** → Customer selects a worker
+4. **Inspection (optional)** → If inspection required: Worker proposes inspection time → Customer accepts/rejects with alternate time → Both confirm completion
+5. **Quote** → Worker submits quote (after inspection or directly if inspection not required)
+6. **Schedule** → Worker schedules work → Customer accepts/rejects with alternate time
+7. **Work** → Worker completes job → Customer confirms completion → Worker generates invoice
+8. **Payment** → Worker marks payment status (confirmed/paid on spot)
+9. **Review** → Customer rates worker 1-10 and leaves feedback
+10. **Complete** → Job marked as completed
 
 ### Service Categories (60+ Types)
 
@@ -242,15 +246,19 @@ The app uses a mock authentication system with demo accounts:
 
 ### Workflow States
 Each service request progresses through these states:
-- `open` → `pending_customer_confirmation` → `inspection_pending_worker_proposal` → `inspection_pending_customer_confirmation` → `inspection_scheduled` → `inspection_completed_pending_customer_confirm` → `awaiting_quote` → `quote_pending_approval` → `work_pending_worker_schedule` → `work_pending_customer_confirmation` → `work_scheduled` → `work_completed_pending_customer_confirm` → `payment_pending` → `completed`
+- With inspection: `open` → `pending_customer_confirmation` → `inspection_pending_worker_proposal` → `inspection_pending_customer_confirmation` → `inspection_scheduled` → `inspection_completed_pending_customer_confirm` → `awaiting_quote` → `quote_pending_approval` → `work_pending_worker_schedule` → `work_pending_customer_confirmation` → `work_scheduled` → `work_completed_pending_customer_confirm` → `payment_pending` → `completed`
+- Without inspection: `open` → `pending_customer_confirmation` → `awaiting_quote` → `quote_pending_approval` → ...
 
 ## 🎨 UI Components & Features
 
 ### Responsive Design
-- **Mobile-First**: Optimized for all screen sizes
+- **Mobile-First**: Optimized for all screen sizes with mobile-specific layouts
 - **Desktop Enhancements**: Improved layouts for PC views with wider containers and better grid systems
 - **Touch-Friendly**: Optimized interface elements for mobile devices
 - **Adaptive Grids**: Dynamic column layouts (1-6 columns based on screen size)
+- **Mobile Navigation**: Hamburger menu with notifications and quick actions
+- **Mobile Forms**: Two-step category selection with auto-scroll to details
+- **Mobile Browse**: Collapsible filters with jobs list prioritized
 
 ### Category Selection
 - **Visual Cards**: Illustrated category cards with Storyset SVG images
@@ -311,6 +319,9 @@ The application includes comprehensive mock data seeding and can be tested with:
 - **WorkTypeCards**: Responsive category grid with Storyset illustrations
 - **Illustration**: Reusable image component with fallback handling
 - **Dashboards**: Role-based interfaces with responsive layouts
+- **TimeNegotiationUI**: Inspection and work schedule accept/reject with alternate time
+- **InvoiceSystem**: Work completion invoice generation
+- **PaymentConfirmation**: Paid on spot confirmation for workers
 
 ## 🚀 Deployment
 
@@ -321,6 +332,15 @@ The application is ready for deployment to any static hosting service:
 - AWS S3 + CloudFront
 
 ## 📈 Recent Enhancements
+
+### v2.1 - Full Workflow & Recurring Services
+- **Complete Job Workflow**: End-to-end process from request to payment with time negotiation
+- **In-App Reminders**: 30/15 minute alerts for inspection and work schedules
+- **Contact Person**: On-site contact details for service coordination
+- **Recurring Services**: Weekly, monthly, and custom recurring job scheduling
+- **Invoice Generation**: Automatic invoices after work completion
+- **Payment Confirmation**: Worker confirms payment receipt
+- **Rating System**: 1-10 scale worker ratings
 
 ### v2.0 - Service Category Expansion
 - **60 Work Categories**: Expanded from 16 to 60+ service types
@@ -364,4 +384,4 @@ For support and questions:
 ---
 
 Built with ❤️ for Fannu Bazaar service marketplace platform.
-*Last Updated: March 7, 2026*
+*Last Updated: April 23, 2026*

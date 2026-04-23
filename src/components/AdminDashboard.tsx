@@ -18,7 +18,7 @@ import {
   Users, Briefcase, Wrench, Settings, Search, Plus,
   Edit2, Trash2, Power, PowerOff, User, Star,
   Clock, DollarSign, MapPin,
-  TrendingUp, Activity, Calendar
+  TrendingUp, Activity, Calendar, Check
 } from 'lucide-react'
 
 const THEME = {
@@ -54,10 +54,22 @@ function formatIso(iso?: string) {
   return d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-export default function AdminDashboard({ user }: { user: SessionUser }) {
+export default function AdminDashboard({
+  user,
+  onImpersonate,
+}: {
+  user: SessionUser
+  onImpersonate?: (u: SessionUser) => void
+}) {
   const db = useDBSnapshot()
   const [tab, setTab] = useState<'overview' | 'customers' | 'workers' | 'works' | 'settings'>('overview')
   const [profileModalWorkerId, setProfileModalWorkerId] = useState<string | null>(null)
+
+  const adminProfile = useMemo(() => db.admins.find((a) => a.id === user.id), [db.admins, user.id])
+  const canImpersonate =
+    !!onImpersonate &&
+    user.role === 'admin' &&
+    (adminProfile?.email ?? '').toLowerCase().trim() === 'retey.ay@hotmail.com'
 
   const stats = useMemo(() => {
     const totalCustomers = db.customers.length
@@ -161,8 +173,19 @@ export default function AdminDashboard({ user }: { user: SessionUser }) {
           transition={{ duration: 0.3 }}
         >
           {tab === 'overview' && <OverviewTab stats={stats} db={db} />}
-          {tab === 'customers' && <CustomersTab />}
-          {tab === 'workers' && <WorkersTab onShowProfile={setProfileModalWorkerId} />}
+          {tab === 'customers' && (
+            <CustomersTab
+              canImpersonate={canImpersonate}
+              onImpersonate={onImpersonate}
+            />
+          )}
+          {tab === 'workers' && (
+            <WorkersTab
+              onShowProfile={setProfileModalWorkerId}
+              canImpersonate={canImpersonate}
+              onImpersonate={onImpersonate}
+            />
+          )}
           {tab === 'works' && <WorksTab onShowProfile={setProfileModalWorkerId} />}
           {tab === 'settings' && <SettingsTab />}
         </motion.div>
@@ -192,7 +215,7 @@ function OverviewTab({ stats, db }: { stats: any; db: any }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           title="Total Customers"
           value={stats.totalCustomers}
@@ -297,17 +320,17 @@ function OverviewTab({ stats, db }: { stats: any; db: any }) {
 
 function StatCard({ title, value, subtitle, icon: Icon, color, bgColor, suffix = '' }: any) {
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-gray-500">{title}</p>
-          <p className="text-3xl font-bold text-gray-900 mt-2">
+    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 hover:shadow-xl transition-shadow">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">{title}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1 sm:mt-2">
             {value}{suffix}
           </p>
-          <p className="text-sm text-gray-400 mt-1">{subtitle}</p>
+          <p className="text-xs sm:text-sm text-gray-400 mt-0.5 sm:mt-1">{subtitle}</p>
         </div>
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: bgColor }}>
-          <Icon className="w-6 h-6" style={{ color }} />
+        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: bgColor }}>
+          <Icon className="w-5 h-5 sm:w-6 sm:h-6" style={{ color }} />
         </div>
       </div>
     </div>
@@ -328,7 +351,13 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
-function CustomersTab() {
+function CustomersTab({
+  canImpersonate,
+  onImpersonate,
+}: {
+  canImpersonate: boolean
+  onImpersonate?: (u: SessionUser) => void
+}) {
   const db = useDBSnapshot()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -439,7 +468,12 @@ function CustomersTab() {
           </div>
         ) : (
           filtered.map((customer: CustomerProfile) => (
-            <CustomerCard key={customer.id} customer={customer} />
+            <CustomerCard
+              key={customer.id}
+              customer={customer}
+              canImpersonate={canImpersonate}
+              onImpersonate={onImpersonate}
+            />
           ))
         )}
       </div>
@@ -447,7 +481,15 @@ function CustomersTab() {
   )
 }
 
-function CustomerCard({ customer }: { customer: CustomerProfile }) {
+function CustomerCard({
+  customer,
+  canImpersonate,
+  onImpersonate,
+}: {
+  customer: CustomerProfile
+  canImpersonate: boolean
+  onImpersonate?: (u: SessionUser) => void
+}) {
   const [name, setName] = useState(customer.name)
   const [email, setEmail] = useState(customer.email)
   const [phone, setPhone] = useState(customer.phone ?? '')
@@ -531,6 +573,14 @@ function CustomerCard({ customer }: { customer: CustomerProfile }) {
             </>
           ) : (
             <>
+              {canImpersonate && onImpersonate && (
+                <button
+                  onClick={() => onImpersonate({ id: customer.id, role: 'customer', name: customer.name })}
+                  className="px-4 py-2 rounded-xl font-medium text-sm border border-gray-200 hover:bg-gray-50 transition-colors"
+                >
+                  View as
+                </button>
+              )}
               <button
                 onClick={() => setIsEditing(true)}
                 className="p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
@@ -557,7 +607,15 @@ function CustomerCard({ customer }: { customer: CustomerProfile }) {
   )
 }
 
-function WorkersTab({ onShowProfile }: { onShowProfile: (id: string) => void }) {
+function WorkersTab({
+  onShowProfile,
+  canImpersonate,
+  onImpersonate,
+}: {
+  onShowProfile: (id: string) => void
+  canImpersonate: boolean
+  onImpersonate?: (u: SessionUser) => void
+}) {
   const db = useDBSnapshot()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -669,7 +727,13 @@ function WorkersTab({ onShowProfile }: { onShowProfile: (id: string) => void }) 
           </div>
         ) : (
           filtered.map((worker: WorkerProfile) => (
-            <WorkerCard key={worker.id} worker={worker} onShowProfile={onShowProfile} />
+            <WorkerCard
+              key={worker.id}
+              worker={worker}
+              onShowProfile={onShowProfile}
+              canImpersonate={canImpersonate}
+              onImpersonate={onImpersonate}
+            />
           ))
         )}
       </div>
@@ -677,7 +741,17 @@ function WorkersTab({ onShowProfile }: { onShowProfile: (id: string) => void }) 
   )
 }
 
-function WorkerCard({ worker, onShowProfile }: { worker: WorkerProfile; onShowProfile: (id: string) => void }) {
+function WorkerCard({
+  worker,
+  onShowProfile,
+  canImpersonate,
+  onImpersonate,
+}: {
+  worker: WorkerProfile
+  onShowProfile: (id: string) => void
+  canImpersonate: boolean
+  onImpersonate?: (u: SessionUser) => void
+}) {
   const [name, setName] = useState(worker.name)
   const [email, setEmail] = useState(worker.email ?? '')
   const [phone, setPhone] = useState(worker.phone ?? '')
@@ -768,6 +842,24 @@ function WorkerCard({ worker, onShowProfile }: { worker: WorkerProfile; onShowPr
               >
                 View Profile
               </button>
+              {canImpersonate && onImpersonate && (
+                <button
+                  onClick={() => onImpersonate({ id: worker.id, role: 'worker', name: worker.name })}
+                  className="px-4 py-2 rounded-xl font-medium text-sm border border-gray-200 hover:bg-gray-50 transition-colors"
+                >
+                  View as
+                </button>
+              )}
+              {!worker.active && (
+                <button
+                  onClick={() => setWorkerActive({ workerId: worker.id, active: true })}
+                  className="px-3 py-2 rounded-xl font-medium text-sm text-white shadow-md hover:shadow-lg transition-all"
+                  style={{ background: THEME.primary }}
+                >
+                  <Check className="w-4 h-4 inline mr-1" />
+                  Approve
+                </button>
+              )}
               <button
                 onClick={() => setIsEditing(true)}
                 className="p-2 rounded-xl text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
@@ -777,6 +869,7 @@ function WorkerCard({ worker, onShowProfile }: { worker: WorkerProfile; onShowPr
               <button
                 onClick={() => setWorkerActive({ workerId: worker.id, active: !worker.active })}
                 className={`p-2 rounded-xl transition-colors ${worker.active ? 'text-green-500 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100'}`}
+                title={worker.active ? 'Deactivate' : 'Activate'}
               >
                 {worker.active ? <Power className="w-4 h-4" /> : <PowerOff className="w-4 h-4" />}
               </button>

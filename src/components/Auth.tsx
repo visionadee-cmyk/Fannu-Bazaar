@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import type { SessionUser } from '../lib/types'
 import { useDBSnapshot } from '../lib/hooks'
 import { createAdmin, createCustomer, createWorker, seedIfEmpty } from '../lib/db'
-import { supabase } from '../lib/supabase'
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup } from 'firebase/auth'
+import { firebaseAuth } from '../lib/firebase'
 import { 
   Mail, Lock, ArrowLeft, UserCog, 
   Chrome, Search, Briefcase
@@ -66,6 +67,7 @@ const WelcomeIllustration = () => (
 
 export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void }) {
   const db = useDBSnapshot()
+  const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
   const [activeTab, setActiveTab] = useState<'welcome' | 'login' | 'signup' | 'signup_form' | 'oauth_role'>('welcome')
   const [role, setRole] = useState<'customer' | 'worker'>('customer')
   const [name, setName] = useState('')
@@ -73,7 +75,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [showAdminLogin, setShowAdminLogin] = useState(false)
+  const [showAdminLogin, setShowAdminLogin] = useState(isAdminPath)
   const [loginError, setLoginError] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [oauthEmail, setOauthEmail] = useState<string | null>(null)
@@ -81,12 +83,19 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
 
   useEffect(() => {
     seedIfEmpty().then(() => setIsLoading(false))
+  }, [])
 
-    supabase.auth.getSession().then(({ data }) => {
-      const session = data.session
-      if (!session?.user?.email) return
+  useEffect(() => {
+    if (isAdminPath) {
+      setShowAdminLogin(true)
+    }
+  }, [isAdminPath])
 
-      const normalizedEmail = session.user.email.toLowerCase().trim()
+  useEffect(() => {
+    const unsub = onAuthStateChanged(firebaseAuth, (user) => {
+      if (!user?.email) return
+
+      const normalizedEmail = user.email.toLowerCase().trim()
       const alreadyCustomer = db.customers.find((c) => c.active && c.email?.toLowerCase() === normalizedEmail)
       const alreadyWorker = db.workers.find((w) => w.active && w.email?.toLowerCase() === normalizedEmail)
 
@@ -101,32 +110,12 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
       }
 
       setOauthEmail(normalizedEmail)
-      setOauthName(
-        (session.user.user_metadata?.full_name as string | undefined) ||
-          (session.user.user_metadata?.name as string | undefined) ||
-          null,
-      )
-      setActiveTab('oauth_role')
-    })
-  }, [])
-
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session?.user?.email) return
-      const normalizedEmail = session.user.email.toLowerCase().trim()
-      setOauthEmail(normalizedEmail)
-      setOauthName(
-        (session.user.user_metadata?.full_name as string | undefined) ||
-          (session.user.user_metadata?.name as string | undefined) ||
-          null,
-      )
+      setOauthName(user.displayName?.trim() || null)
       setActiveTab('oauth_role')
     })
 
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => unsub()
+  }, [db.customers, db.workers, onLogin])
 
   const handleRoleSelect = (selectedRole: 'customer' | 'worker') => {
     setRole(selectedRole)
@@ -137,13 +126,12 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
 
   const handleOAuthStart = async () => {
     setLoginError('')
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin,
-      },
-    })
-    if (error) setLoginError(error.message)
+    try {
+      const provider = new GoogleAuthProvider()
+      await signInWithPopup(firebaseAuth, provider)
+    } catch (e: any) {
+      setLoginError(e?.message ?? 'Google sign-in failed')
+    }
   }
 
   const handleOAuthRoleSelect = (selectedRole: 'customer' | 'worker') => {
@@ -163,9 +151,20 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
       return
     }
 
-    const existing = db.workers.find((w) => w.active && w.email?.toLowerCase() === oauthEmail)
-    const w = existing || createWorker({ name: displayName, email: oauthEmail })
-    onLogin({ id: w.id, role: 'worker', name: w.name })
+    const existingActive = db.workers.find((w) => w.active && w.email?.toLowerCase() === oauthEmail)
+    if (existingActive) {
+      onLogin({ id: existingActive.id, role: 'worker', name: existingActive.name })
+      return
+    }
+
+    const existingPending = db.workers.find((w) => !w.active && w.email?.toLowerCase() === oauthEmail)
+    if (existingPending) {
+      setLoginError('Your worker account is pending admin approval')
+      return
+    }
+
+    createWorker({ name: displayName, email: oauthEmail, active: false })
+    setLoginError('Your worker account is created and pending admin approval')
   }
 
   const handleCreateAccount = () => {
@@ -213,13 +212,15 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
       return
     }
 
-    const w = createWorker({
+    createWorker({
       name: name.trim(),
       email: normalizedEmail,
       password: password.trim(),
       phone: phone.trim() || undefined,
+      active: false,
     })
-    onLogin({ id: w.id, role: 'worker', name: w.name })
+    setLoginError('Your worker account is created and pending admin approval')
+    setActiveTab('login')
   }
 
   const handleLogin = () => {
@@ -281,7 +282,89 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
       return
     }
 
+    const pendingWorker = db.workers.find((w) => !w.active && w.email?.toLowerCase() === normalizedEmail)
+    if (pendingWorker) {
+      setLoginError('Your worker account is pending admin approval')
+      return
+    }
+
     setLoginError('Invalid email or password')
+  }
+
+  // Admin Login Screen
+  if (showAdminLogin) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: `linear-gradient(135deg, ${THEME.bg} 0%, #ffffff 100%)` }}>
+        <div className="w-full max-w-sm">
+          <button
+            onClick={() => {
+              if (isAdminPath) {
+                window.location.href = '/'
+                return
+              }
+              setShowAdminLogin(false)
+            }}
+            className="mb-4 flex items-center gap-2 text-gray-500 hover:text-gray-700"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="text-sm">Back</span>
+          </button>
+
+          <div className="bg-white rounded-3xl shadow-lg p-6">
+            <div className="text-center mb-6">
+              <div className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: THEME.primaryLight }}>
+                <UserCog className="w-7 h-7" style={{ color: THEME.primary }} />
+              </div>
+              <h2 className="text-xl font-bold text-gray-800">Admin Login</h2>
+            </div>
+
+            {loginError && (
+              <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                <p className="text-red-600 text-sm">{loginError}</p>
+              </div>
+            )}
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-gray-600 mb-1.5 block">Admin Email</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="admin@example.com"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-800 focus:outline-none focus:border-green-400 text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-gray-600 mb-1.5 block">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-800 focus:outline-none focus:border-green-400 text-sm"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={handleLogin}
+                className="w-full py-3.5 rounded-xl font-semibold text-white shadow-md transition-all active:scale-95"
+                style={{ background: THEME.primary }}
+              >
+                Login
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // Welcome Screen with Hero Section
@@ -389,13 +472,6 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
               className="px-8 py-4 rounded-xl font-semibold bg-white text-gray-700 border-2 border-gray-200 hover:bg-gray-50 transition-all text-lg"
             >
               I already have an account
-            </button>
-          </div>
-
-          {/* Admin Link */}
-          <div className="text-center mt-8">
-            <button onClick={() => setShowAdminLogin(true)} className="text-sm text-gray-400 hover:text-gray-600 flex items-center justify-center gap-1 mx-auto">
-              <UserCog className="w-4 h-4" /> Admin Access
             </button>
           </div>
         </div>
@@ -593,73 +669,6 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
               >
                 <Chrome className="w-4 h-4" />
                 <span className="text-xs font-medium text-gray-700">Continue with Google</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Admin Login Screen
-  if (showAdminLogin) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4" style={{ background: `linear-gradient(135deg, ${THEME.bg} 0%, #ffffff 100%)` }}>
-        <div className="w-full max-w-sm">
-          <button onClick={() => setShowAdminLogin(false)} className="mb-4 flex items-center gap-2 text-gray-500 hover:text-gray-700">
-            <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Back</span>
-          </button>
-
-          <div className="bg-white rounded-3xl shadow-lg p-6">
-            <div className="text-center mb-6">
-              <div className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: THEME.primaryLight }}>
-                <UserCog className="w-7 h-7" style={{ color: THEME.primary }} />
-              </div>
-              <h2 className="text-xl font-bold text-gray-800">Admin Login</h2>
-            </div>
-
-            {loginError && (
-              <div className="mb-4 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-                <p className="text-red-600 text-sm">{loginError}</p>
-              </div>
-            )}
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs text-gray-600 mb-1.5 block">Admin Email</label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input 
-                    type="email" 
-                    value={email} 
-                    onChange={(e) => setEmail(e.target.value)} 
-                    placeholder="admin@example.com" 
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-800 focus:outline-none focus:border-green-400 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs text-gray-600 mb-1.5 block">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input 
-                    type="password" 
-                    value={password} 
-                    onChange={(e) => setPassword(e.target.value)} 
-                    placeholder="••••••" 
-                    className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-800 focus:outline-none focus:border-green-400 text-sm"
-                  />
-                </div>
-              </div>
-
-              <button 
-                onClick={handleLogin} 
-                className="w-full py-3.5 rounded-xl font-semibold text-white shadow-md transition-all active:scale-95"
-                style={{ background: THEME.primary }}
-              >
-                Login
               </button>
             </div>
           </div>

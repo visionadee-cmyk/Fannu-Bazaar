@@ -9,12 +9,13 @@ import type {
   WorkerProfile,
 } from './types'
 
-import { supabase } from './supabase'
+import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { firebaseDb } from './firebase'
 
 type Listener = () => void
 const listeners = new Set<Listener>()
 
-let cache: DB = { admins: [], customers: [], workers: [], requests: [], reviews: [] }
+let cache: DB = { admins: [], customers: [], workers: [], requests: [], reviews: [], notifications: [] }
 
 function cloneDB(db: DB): DB {
   return JSON.parse(JSON.stringify(db)) as DB
@@ -22,6 +23,25 @@ function cloneDB(db: DB): DB {
 
 function nowIso() {
   return new Date().toISOString()
+}
+
+function stripUndefinedDeep<T>(value: T): any {
+  if (value === undefined) return undefined
+  if (value === null) return null
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => stripUndefinedDeep(v))
+      .filter((v) => v !== undefined)
+  }
+  if (typeof value === 'object') {
+    const out: Record<string, any> = {}
+    for (const [k, v] of Object.entries(value as Record<string, any>)) {
+      const next = stripUndefinedDeep(v)
+      if (next !== undefined) out[k] = next
+    }
+    return out
+  }
+  return value
 }
 
 export function createCustomer(input: { name: string; email: string; password?: string; phone?: string }) {
@@ -74,7 +94,13 @@ export function createAdmin(input: { name: string; email: string }) {
   return a
 }
 
-export function createWorker(input: { name: string; email?: string; password?: string; phone?: string }) {
+export function createWorker(input: {
+  name: string
+  email?: string
+  password?: string
+  phone?: string
+  active?: boolean
+}) {
   const db = load()
   const w: WorkerProfile = {
     id: `w_${Math.random().toString(16).slice(2)}`,
@@ -91,7 +117,7 @@ export function createWorker(input: { name: string; email?: string; password?: s
     ratingAvg: 0,
     ratingCount: 0,
     jobsDone: 0,
-    active: true,
+    active: input.active ?? true,
   }
   db.workers.unshift(w)
   save(db)
@@ -130,11 +156,16 @@ function load(): DB {
 }
 
 async function persist(db: DB) {
-  const { error } = await supabase
-    .from('app_state')
-    .upsert({ id: 'global', db }, { onConflict: 'id' })
-
-  if (error) throw error
+  try {
+    const cleanDb = stripUndefinedDeep(db)
+    await setDoc(doc(firebaseDb, 'app_state', 'global'), { db: cleanDb }, { merge: true })
+  } catch (e: any) {
+    if (e?.code === 'permission-denied') {
+      console.warn('Firestore permission denied while saving app state. Falling back to local state only.')
+      return
+    }
+    throw e
+  }
 }
 
 function save(db: DB) {
@@ -155,18 +186,23 @@ export function getDB(): DB {
 }
 
 export async function refreshDB() {
-  const { data, error } = await supabase.from('app_state').select('db').eq('id', 'global').maybeSingle()
-  if (error) throw error
-  if (data?.db) {
-    cache = data.db as DB
-  } else {
-    cache = { admins: [], customers: [], workers: [], requests: [], reviews: [] }
+  try {
+    const snap = await getDoc(doc(firebaseDb, 'app_state', 'global'))
+    const data = snap.data() as { db?: DB } | undefined
+    if (data?.db) cache = data.db
+    else cache = { admins: [], customers: [], workers: [], requests: [], reviews: [], notifications: [] }
+  } catch (e: any) {
+    if (e?.code === 'permission-denied') {
+      console.warn('Firestore permission denied while loading app state. Using local state only.')
+    } else {
+      throw e
+    }
   }
   for (const l of listeners) l()
 }
 
 export function resetDB() {
-  cache = { admins: [], customers: [], workers: [], requests: [], reviews: [] }
+  cache = { admins: [], customers: [], workers: [], requests: [], reviews: [], notifications: [] }
   for (const l of listeners) l()
   void persist(cache)
 }
@@ -267,7 +303,7 @@ export async function seedIfEmpty() {
     },
   ]
 
-  save({ admins, customers, workers, requests, reviews: [] })
+  save({ admins, customers, workers, requests, reviews: [], notifications: [] })
 }
 
 export function listWorkers(category?: ServiceCategory) {
@@ -314,6 +350,12 @@ export function createRequest(input: {
   budget: number
   urgency: 'low' | 'medium' | 'high'
   location: string
+  requiresInspection?: boolean
+  contactName?: string
+  contactPhone?: string
+  isRecurring?: boolean
+  recurringFrequency?: import('./types').RecurringFrequency
+  recurringDiscount?: number
 }) {
   const db = load()
   const customer = db.customers.find((c) => c.id === input.customerId)
@@ -332,6 +374,56 @@ export function createRequest(input: {
   return req
 }
 
+export function createNotification(input: {
+  userId: string
+  userRole: 'customer' | 'worker' | 'admin'
+  type: 'worker_selected' | 'quote_received' | 'inspection_scheduled' | 'work_scheduled' | 'work_completed' | 'payment_received' | 'worker_interested' | 'invoice_ready' | 'payment_confirmed'
+  title: string
+  message: string
+  requestId?: string
+}) {
+  const db = load()
+  db.notifications = Array.isArray((db as any).notifications) ? (db as any).notifications : []
+  const n = {
+    id: `n_${Math.random().toString(16).slice(2)}`,
+    ...input,
+    read: false,
+    createdAt: nowIso(),
+  }
+  db.notifications.unshift(n)
+  save(db)
+  return n
+}
+
+export function listNotificationsForUser(userId: string, userRole: 'customer' | 'worker' | 'admin') {
+  const db = load()
+  db.notifications = Array.isArray((db as any).notifications) ? (db as any).notifications : []
+  return db.notifications.filter((n) => n.userId === userId && n.userRole === userRole).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+}
+
+export function markNotificationRead(notificationId: string) {
+  const db = load()
+  db.notifications = Array.isArray((db as any).notifications) ? (db as any).notifications : []
+  const n = db.notifications.find((x) => x.id === notificationId)
+  if (n) {
+    n.read = true
+    save(db)
+  }
+}
+
+export function markAllNotificationsRead(userId: string, userRole: 'customer' | 'worker' | 'admin') {
+  const db = load()
+  db.notifications = Array.isArray((db as any).notifications) ? (db as any).notifications : []
+  let changed = false
+  db.notifications.forEach((n) => {
+    if (n.userId === userId && n.userRole === userRole && !n.read) {
+      n.read = true
+      changed = true
+    }
+  })
+  if (changed) save(db)
+}
+
 function setStatus(req: ServiceRequest, next: ServiceRequestStatus) {
   req.status = next
 }
@@ -345,7 +437,9 @@ function findReqOrThrow(db: DB, requestId: string) {
 export function acceptRequest(params: { requestId: string; workerId: string }) {
   const db = load()
   const req = findReqOrThrow(db, params.requestId)
-  if (req.status !== 'open') throw new Error('Request is not open')
+  if (req.status !== 'open' && req.status !== 'pending_customer_confirmation') {
+    throw new Error('Request is not open')
+  }
 
   const worker = db.workers.find((w) => w.id === params.workerId)
   if (!worker) throw new Error('Worker not found')
@@ -354,7 +448,18 @@ export function acceptRequest(params: { requestId: string; workerId: string }) {
   req.interestedWorkerIds = Array.isArray(req.interestedWorkerIds) ? req.interestedWorkerIds : []
   if (!req.interestedWorkerIds.includes(params.workerId)) {
     req.interestedWorkerIds.push(params.workerId)
+
+    // Send notification to customer when worker first shows interest
+    createNotification({
+      userId: req.customerId,
+      userRole: 'customer',
+      type: 'worker_interested',
+      title: 'Worker interested!',
+      message: `${worker.name} is interested in your request "${req.title}". Review and select them.`,
+      requestId: params.requestId,
+    })
   }
+  if (req.status === 'open') setStatus(req, 'pending_customer_confirmation')
   save(db)
 }
 
@@ -362,7 +467,9 @@ export function selectWorker(params: { requestId: string; customerId: string; wo
   const db = load()
   const req = findReqOrThrow(db, params.requestId)
   if (req.customerId !== params.customerId) throw new Error('Not your request')
-  if (req.status !== 'open') throw new Error('Request is not open')
+  if (req.status !== 'open' && req.status !== 'pending_customer_confirmation') {
+    throw new Error('Request is not open')
+  }
 
   const worker = db.workers.find((w) => w.id === params.workerId)
   if (!worker) throw new Error('Worker not found')
@@ -373,7 +480,20 @@ export function selectWorker(params: { requestId: string; customerId: string; wo
   if (!req.interestedWorkerIds.includes(params.workerId)) {
     req.interestedWorkerIds.push(params.workerId)
   }
-  setStatus(req, 'inspection_pending_worker_proposal')
+  const needsInspection = req.requiresInspection !== false
+  setStatus(req, needsInspection ? 'inspection_pending_worker_proposal' : 'awaiting_quote')
+
+  createNotification({
+    userId: params.workerId,
+    userRole: 'worker',
+    type: 'worker_selected',
+    title: 'You have been selected!',
+    message: needsInspection
+      ? `Customer selected you for "${req.title}". Please propose an inspection date.`
+      : `Customer selected you for "${req.title}". Please submit your quote.`,
+    requestId: params.requestId,
+  })
+
   save(db)
 }
 
@@ -385,7 +505,9 @@ export function submitQuoteOffer(params: {
 }) {
   const db = load()
   const req = findReqOrThrow(db, params.requestId)
-  if (req.status !== 'open') throw new Error('Request is not open')
+  if (req.status !== 'open' && req.status !== 'pending_customer_confirmation') {
+    throw new Error('Request is not open')
+  }
   if (!Number.isFinite(params.amount) || params.amount < 0) throw new Error('Invalid amount')
 
   const worker = db.workers.find((w) => w.id === params.workerId)
@@ -415,7 +537,9 @@ export function chooseOffer(params: { requestId: string; customerId: string; wor
   const db = load()
   const req = findReqOrThrow(db, params.requestId)
   if (req.customerId !== params.customerId) throw new Error('Not your request')
-  if (req.status !== 'open') throw new Error('Request is not open')
+  if (req.status !== 'open' && req.status !== 'pending_customer_confirmation') {
+    throw new Error('Request is not open')
+  }
 
   const offers = Array.isArray(req.quoteOffers) ? req.quoteOffers : []
   const offer = offers.find((o) => o.workerId === params.workerId)
@@ -434,7 +558,7 @@ export function chooseOffer(params: { requestId: string; customerId: string; wor
 export function addReview(params: {
   requestId: string
   customerId: string
-  rating: 1 | 2 | 3 | 4 | 5
+  rating: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10
   comment?: string
 }) {
   const db = load()
@@ -498,12 +622,28 @@ export function proposeInspection(params: {
   if (req.status !== 'inspection_pending_worker_proposal') {
     throw new Error('Not awaiting inspection proposal')
   }
-  req.inspection = {
-    ...(req.inspection ?? {}),
+  const proposals = req.inspection?.proposals ?? []
+  proposals.push({
     proposedAt: nowIso(),
     scheduledFor: params.whenIso,
+    proposedBy: 'worker',
+    status: 'pending',
+  })
+  req.inspection = {
+    ...(req.inspection ?? {}),
+    proposals,
   }
   setStatus(req, 'inspection_pending_customer_confirmation')
+
+  createNotification({
+    userId: req.customerId,
+    userRole: 'customer',
+    type: 'inspection_scheduled',
+    title: 'Inspection time proposed',
+    message: `Worker proposed an inspection time for "${req.title}". Please review and confirm or propose an alternate.`,
+    requestId: params.requestId,
+  })
+
   save(db)
 }
 
@@ -514,8 +654,112 @@ export function customerConfirmInspection(params: { requestId: string; customerI
   if (req.status !== 'inspection_pending_customer_confirmation') {
     throw new Error('Not awaiting customer inspection confirmation')
   }
-  req.inspection = { ...(req.inspection ?? {}), customerConfirmedAt: nowIso() }
+  const proposals = req.inspection?.proposals ?? []
+  const currentProposal = proposals.find((p) => p.status === 'pending')
+  if (currentProposal) {
+    currentProposal.status = 'accepted'
+  }
+  req.inspection = {
+    ...(req.inspection ?? {}),
+    scheduledFor: currentProposal?.scheduledFor,
+    customerConfirmedAt: nowIso(),
+    proposals,
+  }
   setStatus(req, 'inspection_scheduled')
+
+  if (req.acceptedWorkerId) {
+    createNotification({
+      userId: req.acceptedWorkerId,
+      userRole: 'worker',
+      type: 'inspection_scheduled',
+      title: 'Inspection confirmed!',
+      message: `Customer confirmed the inspection for "${req.title}". Please arrive on time.`,
+      requestId: params.requestId,
+    })
+  }
+
+  save(db)
+}
+
+export function customerRejectInspectionWithAlternate(params: {
+  requestId: string
+  customerId: string
+  rejectionReason: string
+  alternateTimeIso: string
+}) {
+  const db = load()
+  const req = findReqOrThrow(db, params.requestId)
+  if (req.customerId !== params.customerId) throw new Error('Not your request')
+  if (req.status !== 'inspection_pending_customer_confirmation') {
+    throw new Error('Not awaiting customer inspection confirmation')
+  }
+
+  const proposals = req.inspection?.proposals ?? []
+  const currentProposal = proposals.find((p) => p.status === 'pending')
+  if (currentProposal) {
+    currentProposal.status = 'rejected'
+    currentProposal.rejectionReason = params.rejectionReason
+  }
+  proposals.push({
+    proposedAt: nowIso(),
+    scheduledFor: params.alternateTimeIso,
+    proposedBy: 'customer',
+    status: 'pending',
+  })
+  req.inspection = {
+    ...(req.inspection ?? {}),
+    proposals,
+  }
+  setStatus(req, 'inspection_pending_worker_proposal')
+
+  if (req.acceptedWorkerId) {
+    createNotification({
+      userId: req.acceptedWorkerId,
+      userRole: 'worker',
+      type: 'inspection_scheduled',
+      title: 'Inspection time rejected - alternate proposed',
+      message: `Customer rejected your inspection time for "${req.title}". Reason: ${params.rejectionReason}. They proposed an alternate time. Please review.`,
+      requestId: params.requestId,
+    })
+  }
+
+  save(db)
+}
+
+export function workerProposeAlternateInspection(params: {
+  requestId: string
+  workerId: string
+  whenIso: string
+}) {
+  const db = load()
+  const req = findReqOrThrow(db, params.requestId)
+  if (req.acceptedWorkerId !== params.workerId) throw new Error('Not assigned worker')
+  if (req.status !== 'inspection_pending_worker_proposal') {
+    throw new Error('Not awaiting inspection proposal')
+  }
+
+  const proposals = req.inspection?.proposals ?? []
+  proposals.push({
+    proposedAt: nowIso(),
+    scheduledFor: params.whenIso,
+    proposedBy: 'worker',
+    status: 'pending',
+  })
+  req.inspection = {
+    ...(req.inspection ?? {}),
+    proposals,
+  }
+  setStatus(req, 'inspection_pending_customer_confirmation')
+
+  createNotification({
+    userId: req.customerId,
+    userRole: 'customer',
+    type: 'inspection_scheduled',
+    title: 'New inspection time proposed',
+    message: `Worker proposed a new inspection time for "${req.title}". Please review and confirm.`,
+    requestId: params.requestId,
+  })
+
   save(db)
 }
 
@@ -541,6 +785,18 @@ export function customerConfirmInspectionCompleted(params: {
   }
   req.inspection = { ...(req.inspection ?? {}), completedConfirmedByCustomerAt: nowIso() }
   setStatus(req, 'awaiting_quote')
+
+  if (req.acceptedWorkerId) {
+    createNotification({
+      userId: req.acceptedWorkerId,
+      userRole: 'worker',
+      type: 'quote_received',
+      title: 'Submit your quote!',
+      message: `Inspection completed for "${req.title}". Customer is waiting for your price quote.`,
+      requestId: params.requestId,
+    })
+  }
+
   save(db)
 }
 
@@ -572,6 +828,18 @@ export function approveQuote(params: { requestId: string; customerId: string }) 
 
   req.quote = { ...(req.quote ?? {}), approvedAt: nowIso() }
   setStatus(req, 'work_pending_worker_schedule')
+
+  if (req.acceptedWorkerId) {
+    createNotification({
+      userId: req.acceptedWorkerId,
+      userRole: 'worker',
+      type: 'quote_received',
+      title: 'Quote approved!',
+      message: `Customer approved your quote for "${req.title}". Please schedule the work.`,
+      requestId: params.requestId,
+    })
+  }
+
   save(db)
 }
 
@@ -585,12 +853,110 @@ export function scheduleWork(params: {
   if (req.acceptedWorkerId !== params.workerId) throw new Error('Not assigned worker')
   if (req.status !== 'work_pending_worker_schedule') throw new Error('Not awaiting work schedule')
 
+  const proposals = req.work?.proposals ?? []
+  proposals.push({
+    proposedAt: nowIso(),
+    scheduledFor: params.whenIso,
+    proposedBy: 'worker',
+    status: 'pending',
+  })
   req.work = {
     ...(req.work ?? {}),
-    scheduledFor: params.whenIso,
-    scheduledByWorkerAt: nowIso(),
+    proposals,
   }
   setStatus(req, 'work_pending_customer_confirmation')
+
+  createNotification({
+    userId: req.customerId,
+    userRole: 'customer',
+    type: 'work_scheduled',
+    title: 'Work time proposed',
+    message: `Worker proposed a work schedule for "${req.title}". Please review and confirm or propose an alternate.`,
+    requestId: params.requestId,
+  })
+
+  save(db)
+}
+
+export function customerRejectWorkScheduleWithAlternate(params: {
+  requestId: string
+  customerId: string
+  rejectionReason: string
+  alternateTimeIso: string
+}) {
+  const db = load()
+  const req = findReqOrThrow(db, params.requestId)
+  if (req.customerId !== params.customerId) throw new Error('Not your request')
+  if (req.status !== 'work_pending_customer_confirmation') {
+    throw new Error('Not awaiting customer work confirmation')
+  }
+
+  const proposals = req.work?.proposals ?? []
+  const currentProposal = proposals.find((p) => p.status === 'pending')
+  if (currentProposal) {
+    currentProposal.status = 'rejected'
+    currentProposal.rejectionReason = params.rejectionReason
+  }
+  proposals.push({
+    proposedAt: nowIso(),
+    scheduledFor: params.alternateTimeIso,
+    proposedBy: 'customer',
+    status: 'pending',
+  })
+  req.work = {
+    ...(req.work ?? {}),
+    proposals,
+  }
+  setStatus(req, 'work_pending_worker_schedule')
+
+  if (req.acceptedWorkerId) {
+    createNotification({
+      userId: req.acceptedWorkerId,
+      userRole: 'worker',
+      type: 'work_scheduled',
+      title: 'Work schedule rejected - alternate proposed',
+      message: `Customer rejected your work schedule for "${req.title}". Reason: ${params.rejectionReason}. They proposed an alternate time. Please review.`,
+      requestId: params.requestId,
+    })
+  }
+
+  save(db)
+}
+
+export function workerProposeAlternateWorkSchedule(params: {
+  requestId: string
+  workerId: string
+  whenIso: string
+}) {
+  const db = load()
+  const req = findReqOrThrow(db, params.requestId)
+  if (req.acceptedWorkerId !== params.workerId) throw new Error('Not assigned worker')
+  if (req.status !== 'work_pending_worker_schedule') {
+    throw new Error('Not awaiting work schedule')
+  }
+
+  const proposals = req.work?.proposals ?? []
+  proposals.push({
+    proposedAt: nowIso(),
+    scheduledFor: params.whenIso,
+    proposedBy: 'worker',
+    status: 'pending',
+  })
+  req.work = {
+    ...(req.work ?? {}),
+    proposals,
+  }
+  setStatus(req, 'work_pending_customer_confirmation')
+
+  createNotification({
+    userId: req.customerId,
+    userRole: 'customer',
+    type: 'work_scheduled',
+    title: 'New work time proposed',
+    message: `Worker proposed a new work schedule for "${req.title}". Please review and confirm.`,
+    requestId: params.requestId,
+  })
+
   save(db)
 }
 
@@ -599,10 +965,22 @@ export function customerConfirmWorkSchedule(params: { requestId: string; custome
   const req = findReqOrThrow(db, params.requestId)
   if (req.customerId !== params.customerId) throw new Error('Not your request')
   if (req.status !== 'work_pending_customer_confirmation') {
-    throw new Error('Not awaiting work schedule confirmation')
+    throw new Error('Not awaiting customer work confirmation')
   }
   req.work = { ...(req.work ?? {}), confirmedByCustomerAt: nowIso() }
   setStatus(req, 'work_scheduled')
+
+  if (req.acceptedWorkerId) {
+    createNotification({
+      userId: req.acceptedWorkerId,
+      userRole: 'worker',
+      type: 'work_scheduled',
+      title: 'Work schedule confirmed!',
+      message: `Customer confirmed the work schedule for "${req.title}". Please arrive on time.`,
+      requestId: params.requestId,
+    })
+  }
+
   save(db)
 }
 
@@ -622,12 +1000,114 @@ export function customerConfirmWorkCompleted(params: { requestId: string; custom
   const req = findReqOrThrow(db, params.requestId)
   if (req.customerId !== params.customerId) throw new Error('Not your request')
   if (req.status !== 'work_completed_pending_customer_confirm') {
-    throw new Error('Not awaiting work completion confirmation')
+    throw new Error('Not awaiting customer work completion confirmation')
+  }
+  req.work = { ...(req.work ?? {}), completedConfirmedByCustomerAt: nowIso() }
+  setStatus(req, 'payment_pending')
+
+  if (req.acceptedWorkerId) {
+    createNotification({
+      userId: req.acceptedWorkerId,
+      userRole: 'worker',
+      type: 'work_completed',
+      title: 'Work completed by customer!',
+      message: `Customer confirmed work completion for "${req.title}". Please mark payment status.`,
+      requestId: params.requestId,
+    })
   }
 
-  req.work = { ...(req.work ?? {}), completedConfirmedByCustomerAt: nowIso() }
-  req.payment = { status: 'pending', markedAt: nowIso() }
-  setStatus(req, 'payment_pending')
+  save(db)
+}
+
+export function generateInvoice(params: {
+  requestId: string
+  customerId: string
+  amount: number
+  description: string
+  dueDateIso?: string
+}) {
+  const db = load()
+  const req = findReqOrThrow(db, params.requestId)
+  if (req.customerId !== params.customerId) throw new Error('Not your request')
+  if (req.status !== 'work_completed_pending_customer_confirm' && req.status !== 'payment_pending') {
+    throw new Error('Cannot generate invoice at this stage')
+  }
+
+  req.invoice = {
+    id: `inv_${Math.random().toString(16).slice(2)}`,
+    amount: params.amount,
+    description: params.description,
+    generatedAt: nowIso(),
+    dueDate: params.dueDateIso,
+    status: 'pending',
+  }
+
+  if (req.status === 'work_completed_pending_customer_confirm') {
+    setStatus(req, 'payment_pending')
+  }
+
+  createNotification({
+    userId: req.customerId,
+    userRole: 'customer',
+    type: 'invoice_ready',
+    title: 'Invoice ready for payment',
+    message: `An invoice of MVR ${params.amount} has been generated for "${req.title}". Please review and pay or choose "Paid on spot".`,
+    requestId: params.requestId,
+  })
+
+  save(db)
+  return req.invoice
+}
+
+export function markPaidOnSpot(params: { requestId: string; customerId: string }) {
+  const db = load()
+  const req = findReqOrThrow(db, params.requestId)
+  if (req.customerId !== params.customerId) throw new Error('Not your request')
+  if (req.status !== 'payment_pending') throw new Error('Not in payment phase')
+
+  req.payment = {
+    status: 'pending',
+    markedAt: nowIso(),
+    paidOnSpot: true,
+    customerMarkedAt: nowIso(),
+  }
+
+  if (req.acceptedWorkerId) {
+    createNotification({
+      userId: req.acceptedWorkerId,
+      userRole: 'worker',
+      type: 'payment_received',
+      title: 'Customer marked paid on spot',
+      message: `Customer marked "${req.title}" as paid on spot. Please confirm receipt of payment.`,
+      requestId: params.requestId,
+    })
+  }
+
+  save(db)
+}
+
+export function workerConfirmPaymentReceived(params: { requestId: string; workerId: string }) {
+  const db = load()
+  const req = findReqOrThrow(db, params.requestId)
+  if (req.acceptedWorkerId !== params.workerId) throw new Error('Not assigned worker')
+  if (req.status !== 'payment_pending') throw new Error('Not in payment phase')
+
+  req.payment = {
+    ...(req.payment ?? {}),
+    status: 'paid',
+    workerConfirmedAt: nowIso(),
+  }
+  setStatus(req, 'completed')
+
+  createNotification({
+    userId: req.customerId,
+    userRole: 'customer',
+    type: 'payment_confirmed',
+    title: 'Payment confirmed - Leave a review!',
+    message: `Worker confirmed payment for "${req.title}". Please leave a rating and review.`,
+    requestId: params.requestId,
+  })
+
   save(db)
 }
 
@@ -635,11 +1115,64 @@ export function markPayment(params: { requestId: string; workerId: string; statu
   const db = load()
   const req = findReqOrThrow(db, params.requestId)
   if (req.acceptedWorkerId !== params.workerId) throw new Error('Not assigned worker')
-  if (req.status !== 'payment_pending') throw new Error('Payment is not pending')
+  if (req.status !== 'payment_pending') throw new Error('Not in payment phase')
 
-  req.payment = { status: params.status, markedAt: nowIso() }
+  req.payment = { ...(req.payment ?? {}), status: params.status, markedAt: nowIso() }
   if (params.status === 'paid') {
     setStatus(req, 'completed')
   }
   save(db)
+}
+
+export function checkUpcomingReminders(userId: string, userRole: 'customer' | 'worker') {
+  const db = load()
+  const now = new Date()
+  const reminders: Array<{
+    type: 'inspection' | 'work'
+    requestId: string
+    title: string
+    scheduledFor: string
+    minutesUntil: number
+    urgency: '30min' | '15min' | 'now'
+  }> = []
+
+  const relevantRequests = db.requests.filter((r) => {
+    if (userRole === 'customer') return r.customerId === userId
+    return r.acceptedWorkerId === userId
+  })
+
+  relevantRequests.forEach((req) => {
+    const inspectionTime = req.inspection?.scheduledFor
+    const workTime = req.work?.scheduledFor
+
+    if (inspectionTime && req.status === 'inspection_scheduled') {
+      const scheduled = new Date(inspectionTime)
+      const diffMs = scheduled.getTime() - now.getTime()
+      const diffMin = Math.floor(diffMs / 60000)
+
+      if (diffMin <= 30 && diffMin > 15) {
+        reminders.push({ type: 'inspection', requestId: req.id, title: req.title, scheduledFor: inspectionTime, minutesUntil: diffMin, urgency: '30min' })
+      } else if (diffMin <= 15 && diffMin > 0) {
+        reminders.push({ type: 'inspection', requestId: req.id, title: req.title, scheduledFor: inspectionTime, minutesUntil: diffMin, urgency: '15min' })
+      } else if (diffMin <= 0 && diffMin > -5) {
+        reminders.push({ type: 'inspection', requestId: req.id, title: req.title, scheduledFor: inspectionTime, minutesUntil: 0, urgency: 'now' })
+      }
+    }
+
+    if (workTime && req.status === 'work_scheduled') {
+      const scheduled = new Date(workTime)
+      const diffMs = scheduled.getTime() - now.getTime()
+      const diffMin = Math.floor(diffMs / 60000)
+
+      if (diffMin <= 30 && diffMin > 15) {
+        reminders.push({ type: 'work', requestId: req.id, title: req.title, scheduledFor: workTime, minutesUntil: diffMin, urgency: '30min' })
+      } else if (diffMin <= 15 && diffMin > 0) {
+        reminders.push({ type: 'work', requestId: req.id, title: req.title, scheduledFor: workTime, minutesUntil: diffMin, urgency: '15min' })
+      } else if (diffMin <= 0 && diffMin > -5) {
+        reminders.push({ type: 'work', requestId: req.id, title: req.title, scheduledFor: workTime, minutesUntil: 0, urgency: 'now' })
+      }
+    }
+  })
+
+  return reminders.sort((a, b) => a.minutesUntil - b.minutesUntil)
 }

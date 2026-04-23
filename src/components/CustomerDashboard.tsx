@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import {
   createRequest,
@@ -8,17 +8,21 @@ import {
   approveQuote,
   customerConfirmWorkSchedule,
   customerConfirmWorkCompleted,
+  customerRejectInspectionWithAlternate,
+  customerRejectWorkScheduleWithAlternate,
+  generateInvoice,
+  markPaidOnSpot,
+  checkUpcomingReminders,
 } from '../lib/db'
 import { useDBSnapshot } from '../lib/hooks'
 import WorkerProfileModal from './WorkerProfileModal'
+import RequestDetailModal from './RequestDetailModal'
 import Illustration from './Illustration'
 import CategoryPicker from './CategoryPicker'
 import type { ServiceCategory, ServiceRequest, SessionUser, WorkerProfile } from '../lib/types'
 import { ALL_CATEGORIES } from '../lib/categoryConfig'
-import {
-  Search, Briefcase, CheckCircle, Plus, Star, User,
-  Wrench, DollarSign, MapPin, Clock
-} from 'lucide-react'
+import { Search, Briefcase, CheckCircle, Plus, Star, User,
+  Wrench, DollarSign, MapPin, Clock, AlertCircle, FileText, X, RefreshCw, Phone } from 'lucide-react'
 
 const THEME = {
   primary: '#10B981',
@@ -50,6 +54,25 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
   const [workerSubcategory, setWorkerSubcategory] = useState<string | undefined>(undefined)
   const [workerQuery, setWorkerQuery] = useState('')
   const [profileModalWorkerId, setProfileModalWorkerId] = useState<string | null>(null)
+  const [detailRequest, setDetailRequest] = useState<ServiceRequest | null>(null)
+  const [reminders, setReminders] = useState<ReturnType<typeof checkUpcomingReminders>>([])
+
+  useEffect(() => {
+    if (activeTab !== 'create') return
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prevOverflow
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setReminders(checkUpcomingReminders(user.id, 'customer'))
+    }, 60000)
+    setReminders(checkUpcomingReminders(user.id, 'customer'))
+    return () => clearInterval(interval)
+  }, [user.id])
 
   const myRequests = useMemo(() => db.requests.filter((r: ServiceRequest) => r.customerId === user.id), [db.requests, user.id])
   const myActiveRequests = useMemo(() => myRequests.filter((r) => r.status !== 'completed'), [myRequests])
@@ -86,8 +109,44 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
     { id: 'completed', label: 'Completed', count: myCompletedRequests.length, icon: CheckCircle },
   ]
 
+  const mobileTabLabel = (id: (typeof tabs)[number]['id']) => {
+    if (id === 'my') return 'My'
+    if (id === 'create') return 'New'
+    if (id === 'confirm') return 'Action'
+    if (id === 'workers') return 'Workers'
+    return 'Done'
+  }
+
   return (
     <div className="min-h-screen" style={{ background: THEME.bg }}>
+      {activeTab === 'create' && (
+        <div className="sm:hidden fixed inset-0 z-[9999]">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setActiveTab('my')}
+            aria-label="Close"
+          />
+          <div className="absolute inset-x-0 bottom-0 max-h-[92vh] overflow-y-auto rounded-t-3xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between gap-3 p-4 border-b border-gray-100" style={{ background: THEME.gray50 }}>
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-gray-900 truncate">Create New Request</h2>
+                <p className="text-sm text-gray-500 truncate">Fill details to get matched with workers</p>
+              </div>
+              <button
+                type="button"
+                className="rounded-xl bg-gray-900 px-4 py-2 text-sm font-semibold text-white"
+                onClick={() => setActiveTab('my')}
+              >
+                Close
+              </button>
+            </div>
+            <div className="p-4">
+              <ServiceRequestForm onSubmit={(v) => { createRequest({ customerId: user.id, ...v }); setActiveTab('my') }} />
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="sticky top-0 z-10 backdrop-blur-xl border-b border-gray-200/50" style={{ background: 'rgba(255,255,255,0.95)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -117,12 +176,44 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
           </div>
 
           {/* Navigation */}
-          <div className="flex gap-1 overflow-x-auto pb-4 -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="sm:hidden pb-4">
+            <div className="grid grid-cols-2 gap-2">
+              {tabs.map((tab) => {
+                const Icon = tab.icon
+                const isActive = activeTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all ${isActive ? 'text-white shadow-lg shadow-green-500/25' : 'text-gray-700 bg-white hover:bg-gray-50 ring-1 ring-gray-200'}`}
+                    style={isActive ? { background: THEME.primary } : {}}
+                  >
+                    <span className="flex items-center gap-2 min-w-0">
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{mobileTabLabel(tab.id as any)}</span>
+                    </span>
+                    {tab.count !== null && tab.count > 0 && (
+                      <span className={`flex-shrink-0 px-2 py-0.5 rounded-full text-xs ${isActive ? 'bg-white/20' : 'bg-gray-200 text-gray-700'}`}>
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="hidden sm:flex gap-1 overflow-x-auto pb-4 snap-x snap-mandatory" style={{ WebkitOverflowScrolling: 'touch' }}>
             {tabs.map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
               return (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all whitespace-nowrap ${isActive ? 'text-white shadow-lg shadow-green-500/25' : 'text-gray-600 hover:bg-gray-100'}`} style={isActive ? { background: THEME.primary } : {}}>
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`snap-start flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all whitespace-nowrap ${isActive ? 'text-white shadow-lg shadow-green-500/25' : 'text-gray-600 hover:bg-gray-100'}`}
+                  style={isActive ? { background: THEME.primary } : {}}
+                >
                   <Icon className="w-4 h-4" />
                   <span>{tab.label}</span>
                   {tab.count !== null && tab.count > 0 && <span className={`px-2 py-0.5 rounded-full text-xs ${isActive ? 'bg-white/20' : 'bg-gray-200 text-gray-600'}`}>{tab.count}</span>}
@@ -133,19 +224,45 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
         </div>
       </motion.div>
 
+      {/* Reminders Banner */}
+      {reminders.length > 0 && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
+          {reminders.map((r) => (
+            <div
+              key={`${r.requestId}-${r.type}`}
+              className={`mb-2 p-3 rounded-xl flex items-center gap-3 ${
+                r.urgency === 'now' ? 'bg-red-100 text-red-800 border border-red-200' :
+                r.urgency === '15min' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                'bg-blue-100 text-blue-800 border border-blue-200'
+              }`}
+            >
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <div className="flex-1">
+                <span className="font-semibold">
+                  {r.urgency === 'now' ? 'Starting now:' : r.urgency === '15min' ? '15 minutes:' : '30 minutes:'}
+                </span>{' '}
+                {r.type === 'inspection' ? 'Inspection' : 'Work'} for "{r.title}" at {formatIso(r.scheduledFor)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <motion.div key={activeTab} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
           {activeTab === 'create' && (
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-              <div className="p-6 border-b border-gray-100" style={{ background: THEME.gray50 }}>
-                <h2 className="text-xl font-bold text-gray-900">Create New Request</h2>
-                <p className="text-gray-500">Describe your service needs to get matched with skilled workers</p>
+            <>
+              <div className="hidden sm:block bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+                <div className="p-6 border-b border-gray-100" style={{ background: THEME.gray50 }}>
+                  <h2 className="text-xl font-bold text-gray-900">Create New Request</h2>
+                  <p className="text-gray-500">Describe your service needs to get matched with skilled workers</p>
+                </div>
+                <div className="p-6">
+                  <ServiceRequestForm onSubmit={(v) => { createRequest({ customerId: user.id, ...v }); setActiveTab('my') }} />
+                </div>
               </div>
-              <div className="p-6">
-                <ServiceRequestForm onSubmit={(v) => { createRequest({ customerId: user.id, ...v }); setActiveTab('my') }} />
-              </div>
-            </div>
+            </>
           )}
 
           {activeTab === 'workers' && (
@@ -224,7 +341,7 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
                   <button onClick={() => setActiveTab('create')} className="px-8 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Create Request</button>
                 </div>
               ) : (
-                myActiveRequests.map((r: ServiceRequest) => <CustomerRequestCard key={r.id} req={r} userId={user.id} hasReviewed={reviewsByRequest.has(r.id)} onShowWorkerProfile={setProfileModalWorkerId} />)
+                myActiveRequests.map((r: ServiceRequest) => <CustomerRequestCard key={r.id} req={r} userId={user.id} hasReviewed={reviewsByRequest.has(r.id)} onShowWorkerProfile={setProfileModalWorkerId} onViewDetails={setDetailRequest} />)
               )}
             </div>
           )}
@@ -242,7 +359,7 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
                   <p className="text-gray-500">Your completed requests will appear here</p>
                 </div>
               ) : (
-                myCompletedRequests.map((r: ServiceRequest) => <CustomerRequestCard key={r.id} req={r} userId={user.id} hasReviewed={reviewsByRequest.has(r.id)} onShowWorkerProfile={setProfileModalWorkerId} />)
+                myCompletedRequests.map((r: ServiceRequest) => <CustomerRequestCard key={r.id} req={r} userId={user.id} hasReviewed={reviewsByRequest.has(r.id)} onShowWorkerProfile={setProfileModalWorkerId} onViewDetails={setDetailRequest} />)
               )}
             </div>
           )}
@@ -268,6 +385,14 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
       </div>
 
       {profileModalWorkerId && <WorkerProfileModal workerId={profileModalWorkerId} onClose={() => setProfileModalWorkerId(null)} />}
+      {detailRequest && (
+        <RequestDetailModal
+          req={detailRequest}
+          onClose={() => setDetailRequest(null)}
+          onShowWorkerProfile={setProfileModalWorkerId}
+          customerId={user.id}
+        />
+      )}
     </div>
   )
 }
@@ -304,6 +429,7 @@ function ServiceRequestForm({
     location: string
     budget: number
     urgency: 'low' | 'medium' | 'high'
+    requiresInspection?: boolean
   }) => void
 }) {
   const [category, setCategory] = useState<ServiceCategory>('AC')
@@ -313,6 +439,19 @@ function ServiceRequestForm({
   const [location, setLocation] = useState('')
   const [budget, setBudget] = useState<number>(1000)
   const [urgency, setUrgency] = useState<'low' | 'medium' | 'high'>('medium')
+  const [requiresInspection, setRequiresInspection] = useState(true)
+  const [showCategoryPicker, setShowCategoryPicker] = useState(true)
+  const detailsRef = useRef<HTMLDivElement | null>(null)
+
+  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
+
+  const goToDetails = () => {
+    if (!isMobile) return
+    setShowCategoryPicker(false)
+    requestAnimationFrame(() => {
+      detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
 
   return (
     <form
@@ -327,27 +466,76 @@ function ServiceRequestForm({
           location: location.trim(),
           budget,
           urgency,
+          requiresInspection,
         })
       }}
     >
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold text-gray-800 truncate">Inspection required?</div>
+          <div className="text-xs text-gray-500 truncate">Turn off if worker can quote without inspection</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setRequiresInspection((v) => !v)}
+          className={`shrink-0 rounded-full px-3 py-2 text-xs font-semibold ring-1 ${requiresInspection ? 'bg-emerald-600 text-white ring-emerald-600' : 'bg-white text-gray-700 ring-gray-200'}`}
+        >
+          {requiresInspection ? 'Yes' : 'No'}
+        </button>
+      </div>
+
       <div className="grid gap-5 md:grid-cols-2">
         <div>
-          <label className="block text-sm font-semibold text-gray-800 mb-2">Service Category</label>
-          <CategoryPicker
-            category={category}
-            subcategory={subcategory}
-            onChange={(next) => {
-              if (next.category === 'All') return
-              setCategory(next.category)
-              setSubcategory(next.subcategory)
-            }}
-            className="mb-4"
-          />
-          <select className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500" value={category} onChange={(e) => setCategory(e.target.value as ServiceCategory)}>
-            {ALL_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+          <div className="flex items-center justify-between gap-3 mb-2">
+            <label className="block text-sm font-semibold text-gray-800">Service Category</label>
+            {!showCategoryPicker && (
+              <button
+                type="button"
+                className="text-sm font-semibold text-green-700"
+                onClick={() => setShowCategoryPicker(true)}
+              >
+                Change
+              </button>
+            )}
+          </div>
+
+          {showCategoryPicker ? (
+            <>
+              <CategoryPicker
+                category={category}
+                subcategory={subcategory}
+                onChange={(next) => {
+                  if (next.category === 'All') return
+                  setCategory(next.category)
+                  setSubcategory(next.subcategory)
+                  goToDetails()
+                }}
+                className="mb-4"
+              />
+              <select
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+                value={category}
+                onChange={(e) => {
+                  setCategory(e.target.value as ServiceCategory)
+                  setSubcategory(undefined)
+                  goToDetails()
+                }}
+              >
+                {ALL_CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : (
+            <div className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800">
+              <div className="font-semibold">{category}</div>
+              {subcategory ? <div className="text-sm text-gray-500">{subcategory}</div> : null}
+            </div>
+          )}
         </div>
-        <div>
+        <div ref={detailsRef}>
           <label className="block text-sm font-semibold text-gray-800 mb-2">Title</label>
           <input className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., AC not cooling" />
         </div>
@@ -412,9 +600,10 @@ function WorkerCard({ worker, onShowProfile }: { worker: WorkerProfile; onShowPr
   )
 }
 
-function CustomerRequestCard({ req, onShowWorkerProfile }: { req: ServiceRequest; userId: string; hasReviewed: boolean; onShowWorkerProfile: (id: string) => void }) {
+function CustomerRequestCard({ req, onShowWorkerProfile, onViewDetails }: { req: ServiceRequest; userId: string; hasReviewed: boolean; onShowWorkerProfile: (id: string) => void; onViewDetails?: (req: ServiceRequest) => void }) {
   const db = useDBSnapshot()
   const worker = useMemo(() => db.workers.find((w) => w.id === req.acceptedWorkerId), [db.workers, req.acceptedWorkerId])
+  const interestedCount = (req.interestedWorkerIds ?? []).length
   const offers = req.quoteOffers ?? []
 
   return (
@@ -422,18 +611,47 @@ function CustomerRequestCard({ req, onShowWorkerProfile }: { req: ServiceRequest
       <div className="p-6 border-b border-gray-100" style={{ background: THEME.gray50 }}>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex-1">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">{req.title}</h3>
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
+              <h3 className="text-lg font-bold text-gray-900">{req.title}</h3>
+              {req.isRecurring && (
+                <span className="px-2.5 py-1 rounded-full text-xs bg-blue-100 text-blue-700 font-medium flex items-center gap-1">
+                  <RefreshCw className="w-3 h-3" /> {req.recurringFrequency} • {req.recurringDiscount}% off
+                </span>
+              )}
+            </div>
             <div className="flex items-center gap-4 text-sm text-gray-500 flex-wrap">
               <span className="flex items-center gap-1.5"><Wrench className="w-4 h-4" style={{ color: THEME.primary }} />{req.category}</span>
               <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-gray-400" />{req.location}</span>
               <span className="flex items-center gap-1.5"><DollarSign className="w-4 h-4 text-gray-400" />MVR {req.budget}</span>
             </div>
           </div>
-          <StatusBadge status={req.status} />
+          <div className="flex items-center gap-2">
+            {interestedCount > 0 && (
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                {interestedCount} interested
+              </span>
+            )}
+            <StatusBadge status={req.status} />
+            {onViewDetails && (
+              <button
+                onClick={() => onViewDetails(req)}
+                className="px-3 py-1.5 rounded-lg text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 transition-colors"
+              >
+                Open
+              </button>
+            )}
+          </div>
         </div>
       </div>
       <div className="p-6">
         <p className="text-gray-600 mb-4">{req.description}</p>
+        {(req.contactName || req.contactPhone) && (
+          <div className="mb-4 p-3 rounded-xl bg-blue-50 border border-blue-100">
+            <p className="text-sm font-medium text-gray-800 mb-1">Contact on-site:</p>
+            {req.contactName && <p className="text-sm text-gray-600 flex items-center gap-1"><User className="w-3 h-3" /> {req.contactName}</p>}
+            {req.contactPhone && <p className="text-sm text-gray-600 flex items-center gap-1"><Phone className="w-3 h-3" /> {req.contactPhone}</p>}
+          </div>
+        )}
         {worker && (
           <div className="mb-4 p-4 rounded-2xl border border-gray-200 bg-gray-50">
             <div className="flex items-center justify-between">
@@ -509,13 +727,8 @@ function CustomerActionCard({ req, customerId, onShowWorkerProfile }: { req: Ser
           </div>
         )}
 
-          {req.status === 'inspection_pending_customer_confirmation' && req.inspection?.scheduledFor && (
-          <div className="p-4 rounded-2xl border border-indigo-200 bg-indigo-50">
-            <p className="text-sm font-semibold text-gray-800 mb-3">Inspection proposed for: <span className="font-bold">{formatIso(req.inspection?.scheduledFor)}</span></p>
-            <div className="flex gap-3">
-              <button onClick={() => customerConfirmInspection({ requestId: req.id, customerId })} className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Confirm</button>
-            </div>
-          </div>
+          {req.status === 'inspection_pending_customer_confirmation' && (
+          <InspectionConfirmationUI req={req} customerId={customerId} />
         )}
 
         {req.status === 'inspection_completed_pending_customer_confirm' && (
@@ -536,13 +749,8 @@ function CustomerActionCard({ req, customerId, onShowWorkerProfile }: { req: Ser
           </div>
         )}
 
-        {req.status === 'work_pending_customer_confirmation' && req.work?.scheduledFor && (
-          <div className="p-4 rounded-2xl border border-cyan-200 bg-cyan-50">
-            <p className="text-sm font-semibold text-gray-800 mb-3">Work scheduled for: <span className="font-bold">{formatIso(req.work?.scheduledFor)}</span></p>
-            <div className="flex gap-3">
-              <button onClick={() => customerConfirmWorkSchedule({ requestId: req.id, customerId })} className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Confirm Schedule</button>
-            </div>
-          </div>
+        {req.status === 'work_pending_customer_confirmation' && (
+          <WorkConfirmationUI req={req} customerId={customerId} />
         )}
 
         {req.status === 'work_completed_pending_customer_confirm' && (
@@ -551,7 +759,270 @@ function CustomerActionCard({ req, customerId, onShowWorkerProfile }: { req: Ser
             <button onClick={() => customerConfirmWorkCompleted({ requestId: req.id, customerId })} className="w-full py-3.5 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Confirm Work Completed</button>
           </div>
         )}
+
+        {req.status === 'payment_pending' && (
+          <PaymentAndInvoiceUI req={req} customerId={customerId} />
+        )}
       </div>
     </CardShell>
+  )
+}
+
+function InspectionConfirmationUI({ req, customerId }: { req: ServiceRequest; customerId: string }) {
+  const [showRejectForm, setShowRejectForm] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [alternateTime, setAlternateTime] = useState('')
+  const pendingProposal = req.inspection?.proposals?.find((p) => p.status === 'pending')
+
+  if (showRejectForm) {
+    return (
+      <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50">
+        <p className="text-sm font-semibold text-gray-800 mb-3">Propose alternate inspection time</p>
+        <textarea
+          value={rejectionReason}
+          onChange={(e) => setRejectionReason(e.target.value)}
+          placeholder="Reason for rejecting current time..."
+          className="w-full p-3 rounded-xl border border-gray-200 mb-3 text-sm"
+          rows={2}
+        />
+        <input
+          type="datetime-local"
+          value={alternateTime}
+          onChange={(e) => setAlternateTime(e.target.value)}
+          className="w-full p-3 rounded-xl border border-gray-200 mb-3 text-sm"
+        />
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowRejectForm(false)}
+            className="flex-1 py-3 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              if (rejectionReason && alternateTime) {
+                customerRejectInspectionWithAlternate({
+                  requestId: req.id,
+                  customerId,
+                  rejectionReason,
+                  alternateTimeIso: new Date(alternateTime).toISOString(),
+                })
+              }
+            }}
+            disabled={!rejectionReason || !alternateTime}
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+            style={{ background: THEME.rose }}
+          >
+            Send Alternate
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 rounded-2xl border border-indigo-200 bg-indigo-50">
+      <p className="text-sm font-semibold text-gray-800 mb-2">
+        Inspection proposed for:{' '}
+        <span className="font-bold">{formatIso(pendingProposal?.scheduledFor ?? req.inspection?.scheduledFor)}</span>
+      </p>
+      {pendingProposal?.rejectionReason && (
+        <p className="text-xs text-rose-600 mb-3">Previous rejection: {pendingProposal.rejectionReason}</p>
+      )}
+      <div className="flex gap-3">
+        <button
+          onClick={() => customerConfirmInspection({ requestId: req.id, customerId })}
+          className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+          style={{ background: THEME.primary }}
+        >
+          Confirm
+        </button>
+        <button
+          onClick={() => setShowRejectForm(true)}
+          className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+          style={{ background: THEME.rose }}
+        >
+          Reject + Propose
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function WorkConfirmationUI({ req, customerId }: { req: ServiceRequest; customerId: string }) {
+  const [showRejectForm, setShowRejectForm] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [alternateTime, setAlternateTime] = useState('')
+  const pendingProposal = req.work?.proposals?.find((p) => p.status === 'pending')
+
+  if (showRejectForm) {
+    return (
+      <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50">
+        <p className="text-sm font-semibold text-gray-800 mb-3">Propose alternate work time</p>
+        <textarea
+          value={rejectionReason}
+          onChange={(e) => setRejectionReason(e.target.value)}
+          placeholder="Reason for rejecting current time..."
+          className="w-full p-3 rounded-xl border border-gray-200 mb-3 text-sm"
+          rows={2}
+        />
+        <input
+          type="datetime-local"
+          value={alternateTime}
+          onChange={(e) => setAlternateTime(e.target.value)}
+          className="w-full p-3 rounded-xl border border-gray-200 mb-3 text-sm"
+        />
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowRejectForm(false)}
+            className="flex-1 py-3 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              if (rejectionReason && alternateTime) {
+                customerRejectWorkScheduleWithAlternate({
+                  requestId: req.id,
+                  customerId,
+                  rejectionReason,
+                  alternateTimeIso: new Date(alternateTime).toISOString(),
+                })
+              }
+            }}
+            disabled={!rejectionReason || !alternateTime}
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+            style={{ background: THEME.rose }}
+          >
+            Send Alternate
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 rounded-2xl border border-cyan-200 bg-cyan-50">
+      <p className="text-sm font-semibold text-gray-800 mb-2">
+        Work scheduled for:{' '}
+        <span className="font-bold">{formatIso(pendingProposal?.scheduledFor ?? req.work?.scheduledFor)}</span>
+      </p>
+      {pendingProposal?.rejectionReason && (
+        <p className="text-xs text-rose-600 mb-3">Previous rejection: {pendingProposal.rejectionReason}</p>
+      )}
+      <div className="flex gap-3">
+        <button
+          onClick={() => customerConfirmWorkSchedule({ requestId: req.id, customerId })}
+          className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+          style={{ background: THEME.primary }}
+        >
+          Confirm
+        </button>
+        <button
+          onClick={() => setShowRejectForm(true)}
+          className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+          style={{ background: THEME.rose }}
+        >
+          Reject + Propose
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function PaymentAndInvoiceUI({ req, customerId }: { req: ServiceRequest; customerId: string }) {
+  const [showInvoiceForm, setShowInvoiceForm] = useState(false)
+  const [invoiceAmount, setInvoiceAmount] = useState(req.quote?.amount?.toString() || '')
+  const [invoiceDesc, setInvoiceDesc] = useState('')
+
+  if (showInvoiceForm) {
+    return (
+      <div className="p-4 rounded-2xl border border-purple-200 bg-purple-50">
+        <p className="text-sm font-semibold text-gray-800 mb-3">Generate Invoice</p>
+        <input
+          type="number"
+          value={invoiceAmount}
+          onChange={(e) => setInvoiceAmount(e.target.value)}
+          placeholder="Amount (MVR)"
+          className="w-full p-3 rounded-xl border border-gray-200 mb-3 text-sm"
+        />
+        <textarea
+          value={invoiceDesc}
+          onChange={(e) => setInvoiceDesc(e.target.value)}
+          placeholder="Description of work done..."
+          className="w-full p-3 rounded-xl border border-gray-200 mb-3 text-sm"
+          rows={2}
+        />
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowInvoiceForm(false)}
+            className="flex-1 py-3 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              if (invoiceAmount && invoiceDesc) {
+                generateInvoice({
+                  requestId: req.id,
+                  customerId,
+                  amount: Number(invoiceAmount),
+                  description: invoiceDesc,
+                })
+              }
+            }}
+            disabled={!invoiceAmount || !invoiceDesc}
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+            style={{ background: THEME.primary }}
+          >
+            Generate Invoice
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50">
+      {req.invoice ? (
+        <>
+          <div className="flex items-center gap-2 mb-3">
+            <FileText className="w-5 h-5 text-emerald-600" />
+            <span className="text-sm font-semibold text-gray-800">Invoice #{req.invoice.id.slice(-6)}</span>
+          </div>
+          <div className="text-2xl font-bold mb-2" style={{ color: THEME.primary }}>MVR {req.invoice.amount}</div>
+          <p className="text-sm text-gray-600 mb-3">{req.invoice.description}</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => markPaidOnSpot({ requestId: req.id, customerId })}
+              className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+              style={{ background: THEME.primary }}
+            >
+              Paid on Spot
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="text-sm text-gray-600 mb-3">No invoice generated. Worker should provide invoice or you can mark as paid.</p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowInvoiceForm(true)}
+              className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+              style={{ background: THEME.primary }}
+            >
+              Generate Invoice
+            </button>
+            <button
+              onClick={() => markPaidOnSpot({ requestId: req.id, customerId })}
+              className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+              style={{ background: THEME.gray800 }}
+            >
+              Paid on Spot
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   )
 }

@@ -62,6 +62,9 @@ The Customer Dashboard provides everything you need to manage service requests:
    - **Location**: Where the service is needed
    - **Budget**: Your expected budget in MVR
    - **Urgency**: Low, Medium, or High
+   - **Inspection Required**: Toggle Yes/No (on mobile, form auto-scrolls to details after category selection)
+   - **Contact Person**: (Optional) Name and phone of on-site contact person
+   - **Recurring Service**: Toggle to schedule recurring jobs with frequency options
 3. Click **"Create Request"**
 4. Your request is now visible to workers in that category
 
@@ -81,12 +84,30 @@ The Customer Dashboard provides everything you need to manage service requests:
 #### Request Statuses
 
 - **Open**: Request is active and workers can view it
-- **Pending**: Waiting for worker or customer action
+- **Pending Customer Confirmation**: Workers have shown interest, awaiting your selection
+- **Inspection Pending**: Awaiting inspection proposal (if inspection required)
 - **Inspection Scheduled**: An inspection has been arranged
-- **Quote Pending**: Waiting for price quote
+- **Awaiting Quote**: Worker selected, waiting for price quote
+- **Quote Pending**: Waiting for price quote approval
 - **Work Scheduled**: Work date has been set
 - **Payment Pending**: Work completed, awaiting payment
-- **Completed**: Job finished and paid
+- **Completed**: Job finished, paid, and reviewed
+
+### Contact Person Feature
+
+When creating a service request, you can specify an on-site contact person:
+- **Contact Name**: Person to meet at the service location
+- **Contact Phone**: Phone number to reach the contact person
+
+This information is visible to workers who accept your job, ensuring smooth coordination even if you won't be on-site.
+
+### Recurring Services
+
+For services you need regularly (cleaning, maintenance, etc.):
+1. Check **"This is a recurring service"** when creating a request
+2. Select frequency: **Weekly, Every 2 Weeks, Monthly, Quarterly,** or **Yearly**
+3. Set discount request percentage (workers may offer discounts for recurring jobs)
+4. A blue badge showing frequency and discount will appear on your request card
 
 #### Actions You May Need to Take
 
@@ -102,7 +123,7 @@ The Customer Dashboard provides everything you need to manage service requests:
 After a job is completed:
 1. Navigate to the completed job
 2. Click **"Leave Review"**
-3. Rate the worker (1-5 stars)
+3. Rate the worker (1-10 scale)
 4. Write your feedback
 5. Submit the review
 
@@ -123,18 +144,21 @@ The Worker Dashboard helps you manage your service business:
 ### Finding Jobs
 
 1. Click **"Browse"** tab
-2. **Filter by Category**: Focus on your expertise areas
-3. **Search**: Look for specific types of jobs
-4. **Review Details**: Check budget, location, and urgency
+2. **Jobs List First**: On mobile, see available jobs immediately without scrolling past filters
+3. **Filter by Category** (optional): Tap **Filters** to open category picker when needed
+4. **Search**: Use the search bar to find specific job types
+5. **Review Details**: Check budget, location, urgency, and inspection requirements
 
 ### Expressing Interest
 
 When you find a suitable job:
 1. Click **"I'm Interested"** to mark your interest
-2. Optionally **submit a quotation**:
+2. **Submit a quotation** (available after marking interest):
    - Enter your price in MVR
-   - Add notes (e.g., "Includes inspection and materials")
+   - Add notes (e.g., "Includes materials")
    - Click **"Submit Quotation"**
+
+The customer will be notified and can view your profile and quotation.
 
 ### Managing Assigned Jobs
 
@@ -142,25 +166,41 @@ Once a customer selects you, the job appears in **"My Jobs"**.
 
 #### Job Workflow Steps
 
+**If Inspection Required:**
 1. **Inspection Phase**
+   - Customer selects you → you receive notification to propose inspection
    - Propose inspection date/time
-   - Wait for customer confirmation
-   - Complete the inspection
-   - Mark inspection as completed
+   - Customer accepts, rejects, or proposes alternate time
+   - If rejected, you'll see a reason and can propose a new time
+   - Complete the inspection and mark as done
+   - Customer confirms inspection completion
 
-2. **Quotation Phase** (if applicable)
+2. **Quotation Phase**
    - Submit your price quote
    - Wait for customer approval
 
-3. **Work Phase**
-   - Schedule the work date/time
-   - Wait for customer confirmation
-   - Complete the work
-   - Mark work as completed
+**If No Inspection Required:**
+1. **Quotation Phase** (immediately after selection)
+   - Customer selects you → you receive notification to submit quote
+   - Submit your price quote
+   - Wait for customer approval
 
-4. **Payment Phase**
+**Work Phase** (after quote approval)
+   - Schedule the work date/time
+   - Customer accepts, rejects, or proposes alternate time
+   - Complete the work and mark as done
+   - Customer confirms work completion
+   - Generate invoice with amount and description
+
+**Payment Phase**
    - Track payment status
-   - Mark as paid when received
+   - Mark as "Paid on Spot" or confirm payment receipt
+   - Customer reviews and confirms payment
+
+**In-App Reminders**
+   - 30-minute reminder before inspection/work (orange alert)
+   - 15-minute reminder (red urgent alert)
+   - Tap to open the job details directly
 
 ### Building Your Profile
 
@@ -178,8 +218,9 @@ A strong profile helps you get more jobs:
 3. **Build Your Reputation**:
    - Complete jobs on time and professionally
    - Provide high-quality workmanship
-   - Earn good ratings and positive reviews
+   - Earn good ratings (1-10 scale) and positive reviews
    - Respond quickly to new opportunities
+   - Consider offering discounts for recurring service requests
 
 ---
 
@@ -234,6 +275,8 @@ The Jobs section shows all service requests:
    - Assigned worker
    - Interested workers count
    - Budget and timeline
+   - Recurring service badge (if applicable)
+   - Contact person information (if provided)
 
 ### Top Workers Panel
 
@@ -338,6 +381,34 @@ Each category includes 5-6 specific subcategories for precise service matching.
 - Request may be in a different status
 - Try refreshing the dashboard
 
+### Mobile UX
+
+### Mobile-Optimized Interface
+
+The platform is fully optimized for mobile devices:
+
+#### Customer Mobile Features
+- **Hamburger Menu**: Access notifications, profile, and sign out from top-right menu
+- **Two-Step Request Form**: Select category → form auto-scrolls to details fields
+- **Compact Tabs**: Grid layout for My Requests / New Request / Actions / Done / Workers
+- **Modal New Request**: Full-screen popup for creating requests without scrolling
+
+#### Worker Mobile Features
+- **Hamburger Menu**: Quick access to notifications and sign out
+- **Grid Tab Navigation**: Browse / My Jobs / Actions / Done / Profile in 2-column grid
+- **Jobs First Browse**: See available jobs immediately; filters collapsed behind "Filters" button
+- **Swipe-Friendly Cards**: Touch-optimized job cards with clear action buttons
+
+### Mobile vs Desktop Differences
+
+| Feature | Mobile | Desktop |
+|---------|--------|---------|
+| Navigation | Bottom nav + hamburger menu | Top header with full menu |
+| Browse Jobs | Jobs list first, filters optional | Filters always visible |
+| Create Request | Full-screen modal popup | Inline card form |
+| Tabs | 2-column grid | Horizontal scroll |
+| Category Picker | Compact with search | Full grid with illustrations |
+
 ### Contact Support
 
 For issues not covered here:
@@ -425,5 +496,5 @@ For issues not covered here:
 
 ---
 
-*Last Updated: March 7, 2026*
-*Platform Version: v2.0 - Service Category Expansion*
+*Last Updated: April 23, 2026*
+*Platform Version: v2.1 - Full Workflow & Recurring Services*
