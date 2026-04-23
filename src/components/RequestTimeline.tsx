@@ -86,7 +86,7 @@ export default function RequestTimeline({ req }: { req: ServiceRequest }) {
         <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
         
         <div className="space-y-4">
-          {relevantSteps.map((step, idx) => {
+          {relevantSteps.map((step) => {
             const state = getStepState(req, step, workflowSteps.indexOf(step))
             const date = getStepDate(req, step.status)
             
