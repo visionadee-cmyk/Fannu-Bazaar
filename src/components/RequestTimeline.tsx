@@ -1,14 +1,5 @@
 import type { ServiceRequest } from '../lib/types'
-import { Check, Clock, Circle, X } from 'lucide-react'
-
-const THEME = {
-  primary: '#10B981',
-  primaryLight: '#D1FAE5',
-  gray200: '#E5E7EB',
-  gray400: '#9CA3AF',
-  gray600: '#4B5563',
-  gray800: '#1F2937',
-}
+import { Check, Clock, Circle } from 'lucide-react'
 
 type TimelineStep = {
   status: ServiceRequest['status']
@@ -45,7 +36,7 @@ function getStepDate(req: ServiceRequest, stepStatus: string): string | undefine
     case 'inspection_pending_worker_proposal':
       return req.acceptedWorkerId ? req.createdAt : undefined
     case 'inspection_pending_customer_confirmation':
-      return req.inspection?.proposedAt
+      return req.inspection?.proposals?.[0]?.proposedAt
     case 'inspection_scheduled':
       return req.inspection?.customerConfirmedAt
     case 'inspection_completed_pending_customer_confirm':
@@ -71,7 +62,7 @@ function getStepDate(req: ServiceRequest, stepStatus: string): string | undefine
   }
 }
 
-function getStepState(req: ServiceRequest, step: TimelineStep, index: number): 'completed' | 'current' | 'pending' {
+function getStepState(req: ServiceRequest, _step: TimelineStep, index: number): 'completed' | 'current' | 'pending' {
   const currentIndex = workflowSteps.findIndex(s => s.status === req.status)
   
   if (index < currentIndex) return 'completed'
@@ -80,7 +71,7 @@ function getStepState(req: ServiceRequest, step: TimelineStep, index: number): '
 }
 
 export default function RequestTimeline({ req }: { req: ServiceRequest }) {
-  const relevantSteps = workflowSteps.filter((step, index) => {
+  const relevantSteps = workflowSteps.filter((_step, index) => {
     // Show all steps up to current + 2 future steps for context
     const currentIndex = workflowSteps.findIndex(s => s.status === req.status)
     return index <= currentIndex + 2
@@ -95,7 +86,7 @@ export default function RequestTimeline({ req }: { req: ServiceRequest }) {
         <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
         
         <div className="space-y-4">
-          {relevantSteps.map((step, index) => {
+          {relevantSteps.map((step, idx) => {
             const state = getStepState(req, step, workflowSteps.indexOf(step))
             const date = getStepDate(req, step.status)
             

@@ -22,7 +22,7 @@ import CategoryPicker from './CategoryPicker'
 import type { ServiceCategory, ServiceRequest, SessionUser, WorkerProfile } from '../lib/types'
 import { ALL_CATEGORIES } from '../lib/categoryConfig'
 import { Search, Briefcase, CheckCircle, Plus, Star, User,
-  Wrench, DollarSign, MapPin, Clock, AlertCircle, FileText, X, RefreshCw, Phone } from 'lucide-react'
+  Wrench, DollarSign, MapPin, Clock, AlertCircle, FileText, RefreshCw, Phone } from 'lucide-react'
 
 const THEME = {
   primary: '#10B981',

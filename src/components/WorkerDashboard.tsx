@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import {
   acceptRequest,
-  markPayment,
   proposeInspection,
   scheduleWork,
   submitQuoteOffer,
