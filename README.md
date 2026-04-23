@@ -25,6 +25,12 @@ npm run dev
 
 Then open the URL printed in the terminal (typically `http://localhost:5173`).
 
+## 📚 Documentation
+
+- `SETUP.md`
+- `USER_MANUAL.md`
+- `GIT_PUSH_GUIDE.md` (GitHub push + Vercel auto-deploy)
+
 ### Production build (optional)
 ```bash
 # Build

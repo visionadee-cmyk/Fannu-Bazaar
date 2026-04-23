@@ -81,6 +81,8 @@ The application is fully responsive. Test on:
 
 ### Common Issues
 
+For GitHub push / Vercel auto-deploy troubleshooting, see `GIT_PUSH_GUIDE.md`.
+
 **"I don't see Admin in the sign-in list"**
 - Clear LocalStorage (see "Resetting demo data" above)
 - Reload the page
