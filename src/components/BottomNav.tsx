@@ -1,4 +1,5 @@
 import { Home, Users, Briefcase, UserCircle, LogOut } from 'lucide-react';
+import { useLanguage } from '../lib/LanguageContext';
 
 interface BottomNavProps {
   userRole: 'admin' | 'customer' | 'worker';
@@ -6,24 +7,26 @@ interface BottomNavProps {
 }
 
 export default function BottomNav({ userRole, onSignOut }: BottomNavProps) {
+  const { t } = useLanguage();
+
   const navItems: Record<string, Array<{ icon: typeof Home; label: string; active: boolean; onClick?: () => void }>> = {
     admin: [
-      { icon: Home, label: 'Dashboard', active: true },
-      { icon: Users, label: 'Users', active: false },
-      { icon: Briefcase, label: 'Jobs', active: false },
-      { icon: UserCircle, label: 'Profile', active: false },
+      { icon: Home, label: t('nav.dashboard'), active: true },
+      { icon: Users, label: t('nav.users'), active: false },
+      { icon: Briefcase, label: t('nav.jobs'), active: false },
+      { icon: UserCircle, label: t('nav.profile'), active: false },
     ],
     customer: [
-      { icon: Home, label: 'Home', active: true },
-      { icon: Briefcase, label: 'My Jobs', active: false },
-      { icon: Users, label: 'Workers', active: false },
-      { icon: UserCircle, label: 'Profile', active: false },
+      { icon: Home, label: t('nav.home'), active: true },
+      { icon: Briefcase, label: t('nav.myJobs'), active: false },
+      { icon: Users, label: t('nav.workers'), active: false },
+      { icon: UserCircle, label: t('nav.profile'), active: false },
     ],
     worker: [
-      { icon: Home, label: 'Jobs', active: true },
-      { icon: Briefcase, label: 'My Work', active: false },
-      { icon: UserCircle, label: 'Profile', active: false },
-      { icon: LogOut, label: 'Sign Out', active: false, onClick: onSignOut },
+      { icon: Home, label: t('nav.jobs'), active: true },
+      { icon: Briefcase, label: t('nav.myWork'), active: false },
+      { icon: UserCircle, label: t('nav.profile'), active: false },
+      { icon: LogOut, label: t('auth.signOut'), active: false, onClick: onSignOut },
     ],
   };
 

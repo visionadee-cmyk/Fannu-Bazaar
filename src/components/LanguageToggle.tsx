@@ -4,6 +4,7 @@ import { useLanguage } from '../lib/LanguageContext';
 export default function LanguageToggle() {
   const { language, setLanguage } = useLanguage();
 
+  // Toggle between English and Dhivehi
   const toggleLanguage = () => {
     const newLang = language === 'en' ? 'dv' : 'en';
     setLanguage(newLang);
