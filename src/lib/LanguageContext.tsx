@@ -210,7 +210,17 @@ const translations = {
     'dashboard.alerts': 'އިނގިލާތި',
     'dashboard.backToAdmin': 'އެޑްމިނަށް ދާ',
     'dashboard.close': 'ދެންމަރު',
-    
+
+    // Navigation (BottomNav)
+    'nav.dashboard': 'ޑޭޝްބޯޑް',
+    'nav.users': 'ޔޫޒަރުން',
+    'nav.jobs': 'ޖޯބްސް',
+    'nav.profile': 'ޕްރޮފައިލް',
+    'nav.home': 'ހޯމް',
+    'nav.myJobs': 'މަގަމް ޖޯބްސް',
+    'nav.workers': 'މުވައްޒަފުން',
+    'nav.myWork': 'މަގަމް މަސް',
+
     // Customer Dashboard
     'customer.myRequests': 'މަގަމް ރިކުއެސްޓުން',
     'customer.completed': 'ނިމިފަ',
