@@ -7,11 +7,15 @@ import InstallButton from './components/InstallButton'
 import BottomNav from './components/BottomNav'
 import NotificationBell from './components/NotificationBell'
 import Footer from './components/Footer'
+import LanguageToggle from './components/LanguageToggle'
+import { LanguageProvider, useLanguage } from './lib/LanguageContext'
 import { seedIfEmpty } from './lib/db'
 import type { SessionUser } from './lib/types'
 import { Menu, X } from 'lucide-react'
 
-export default function App() {
+function AppContent() {
+  const { t, fontClass } = useLanguage()
+  
   useEffect(() => {
     void seedIfEmpty()
   }, [])
@@ -27,7 +31,7 @@ export default function App() {
   const isImpersonating = !!impersonator
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className={`min-h-screen flex flex-col ${fontClass}`}>
       <header className="sticky top-0 z-30 border-b border-gray-200/60 bg-white/90 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
           <div className="flex items-center gap-3">
@@ -37,15 +41,17 @@ export default function App() {
               className="h-10 w-10 rounded-xl bg-white object-contain shadow-sm ring-1 ring-gray-200"
             />
             <div className="leading-tight">
-              <div className="text-base font-semibold text-gray-900">Fannu Bazaar</div>
-              <div className="text-xs text-gray-500">Service marketplace</div>
+              <div className="text-base font-semibold text-gray-900">{t('app.title')}</div>
+              <div className="text-xs text-gray-500">{t('app.subtitle')}</div>
             </div>
           </div>
 
           {/* Desktop Header */}
           <div className="hidden md:flex items-center gap-3">
-            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">
-              {user.role}
+            <LanguageToggle />
+            
+            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100 capitalize">
+              {t(`auth.role.${user.role}`)}
             </span>
 
             {isImpersonating && (
@@ -56,12 +62,12 @@ export default function App() {
                   setImpersonator(null)
                 }}
               >
-                Back to Admin
+                {t('dashboard.backToAdmin')}
               </button>
             )}
 
             <div className="flex items-center gap-1">
-              <span className="text-xs text-gray-500">Alerts:</span>
+              <span className="text-xs text-gray-500">{t('dashboard.alerts')}:</span>
               <NotificationBell user={user} />
             </div>
 
@@ -71,7 +77,7 @@ export default function App() {
               </div>
               <div>
                 <div className="text-sm font-semibold text-gray-900">{user.name}</div>
-                <div className="text-[11px] text-gray-500">Signed in</div>
+                <div className="text-[11px] text-gray-500">{t('auth.signIn')}</div>
               </div>
             </div>
 
@@ -82,7 +88,7 @@ export default function App() {
                 setImpersonator(null)
               }}
             >
-              Sign out
+              {t('auth.signOut')}
             </button>
           </div>
 
@@ -116,7 +122,7 @@ export default function App() {
               </div>
 
               <div className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 ring-1 ring-gray-200">
-                <div className="text-sm font-semibold text-gray-800">Notifications</div>
+                <div className="text-sm font-semibold text-gray-800">{t('dashboard.notifications')}</div>
                 <NotificationBell user={user} />
               </div>
 
@@ -129,7 +135,7 @@ export default function App() {
                     setMobileMenuOpen(false)
                   }}
                 >
-                  Back to Admin
+                  {t('dashboard.backToAdmin')}
                 </button>
               )}
 
@@ -141,14 +147,14 @@ export default function App() {
                   setMobileMenuOpen(false)
                 }}
               >
-                Sign out
+                {t('auth.signOut')}
               </button>
 
               <button
                 className="w-full rounded-xl bg-gray-100 px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-200"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Close
+                {t('dashboard.close')}
               </button>
             </div>
           </div>
@@ -181,5 +187,13 @@ export default function App() {
       <InstallButton />
       <Footer />
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <LanguageProvider>
+      <AppContent />
+    </LanguageProvider>
   )
 }
