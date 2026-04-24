@@ -4,6 +4,8 @@ import { markNotificationRead, markAllNotificationsRead } from '../lib/db'
 import type { SessionUser } from '../lib/types'
 import { Bell, Check, CheckCheck } from 'lucide-react'
 
+type EffectiveRole = 'customer' | 'worker' | 'admin'
+
 function formatIso(iso: string) {
   const date = new Date(iso)
   const now = new Date()
@@ -23,12 +25,22 @@ function NotificationBell({ user }: { user: SessionUser }) {
   const db = useDBSnapshot()
   const [isOpen, setIsOpen] = useState(false)
 
+  // Determine effective role (handle 'dual' role by using currentView)
+  const effectiveRole: EffectiveRole =
+    user.role === 'admin'
+      ? 'admin'
+      : user.role === 'worker'
+        ? 'worker'
+        : user.role === 'dual'
+          ? (user.currentView === 'worker' ? 'worker' : 'customer')
+          : 'customer'
+
   const notifications = useMemo(() => {
     const all = (db as any)?.notifications ?? []
     return all
-      .filter((n: any) => n.userId === user.id && n.userRole === user.role)
+      .filter((n: any) => n.userId === user.id && n.userRole === effectiveRole)
       .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-  }, [db, user.id, user.role])
+  }, [db, user.id, effectiveRole])
 
   const unreadCount = notifications.filter((n: any) => !n.read).length
 
@@ -39,7 +51,7 @@ function NotificationBell({ user }: { user: SessionUser }) {
 
   const handleMarkAllRead = (e: React.MouseEvent) => {
     e.stopPropagation()
-    markAllNotificationsRead(user.id, user.role)
+    markAllNotificationsRead(user.id, effectiveRole)
   }
 
   return (
