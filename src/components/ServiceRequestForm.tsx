@@ -37,7 +37,7 @@ export default function ServiceRequestForm({
 
   return (
     <form
-      className="rounded-2xl border border-white/10 bg-white/5 p-4"
+      className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
       onSubmit={(e) => {
         e.preventDefault()
         onSubmit({
@@ -65,11 +65,11 @@ export default function ServiceRequestForm({
         setRecurringDiscount(10)
       }}
     >
-      <div className="mb-3 text-sm font-semibold text-white">Create Service Request</div>
+      <div className="mb-3 text-sm font-semibold text-gray-900">Create Service Request</div>
 
       <div className="grid gap-3 md:grid-cols-2">
         <div>
-          <label className="mb-1 block text-xs text-white/70">Category</label>
+          <label className="mb-1 block text-xs text-gray-600">Category</label>
           <CategoryPicker
             category={category}
             subcategory={subcategory}
@@ -81,7 +81,7 @@ export default function ServiceRequestForm({
             className="mb-3"
           />
           <select
-            className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 py-2 text-sm text-white"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             value={category}
             onChange={(e) => setCategory(e.target.value as ServiceCategory)}
           >
@@ -94,10 +94,10 @@ export default function ServiceRequestForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-white/70">Budget (MVR)</label>
+          <label className="mb-1 block text-xs text-gray-600">Budget (MVR)</label>
           <input
             type="number"
-            className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 py-2 text-sm text-white"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-400"
             value={budget}
             onChange={(e) => setBudget(Number(e.target.value))}
             min={0}
@@ -105,9 +105,9 @@ export default function ServiceRequestForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-white/70">Title</label>
+          <label className="mb-1 block text-xs text-gray-600">Title</label>
           <input
-            className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 py-2 text-sm text-white"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-400"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. AC not cooling"
@@ -116,9 +116,9 @@ export default function ServiceRequestForm({
         </div>
 
         <div>
-          <label className="mb-1 block text-xs text-white/70">Urgency</label>
+          <label className="mb-1 block text-xs text-gray-600">Urgency</label>
           <select
-            className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 py-2 text-sm text-white"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             value={urgency}
             onChange={(e) => setUrgency(e.target.value as 'low' | 'medium' | 'high')}
           >
@@ -129,9 +129,9 @@ export default function ServiceRequestForm({
         </div>
 
         <div className="md:col-span-2">
-          <label className="mb-1 block text-xs text-white/70">Description</label>
+          <label className="mb-1 block text-xs text-gray-600">Description</label>
           <textarea
-            className="min-h-[90px] w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 py-2 text-sm text-white"
+            className="min-h-[90px] w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-400"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Describe the issue and expectations"
@@ -140,9 +140,9 @@ export default function ServiceRequestForm({
         </div>
 
         <div className="md:col-span-2">
-          <label className="mb-1 block text-xs text-white/70">Location</label>
+          <label className="mb-1 block text-xs text-gray-600">Location</label>
           <input
-            className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 py-2 text-sm text-white"
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-400"
             value={location}
             onChange={(e) => setLocation(e.target.value)}
             placeholder="City / Area"
@@ -150,25 +150,25 @@ export default function ServiceRequestForm({
           />
         </div>
 
-        <div className="md:col-span-2 border-t border-white/10 pt-4 mt-2">
+        <div className="md:col-span-2 border-t border-gray-200 pt-4 mt-2">
           <div className="flex items-center gap-2 mb-3">
-            <User className="w-4 h-4 text-white/70" />
-            <span className="text-sm font-medium text-white">Contact Person (Optional)</span>
+            <User className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-900">Contact Person (Optional)</span>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs text-white/70">Contact Name</label>
+              <label className="mb-1 block text-xs text-gray-600">Contact Name</label>
               <input
-                className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 py-2 text-sm text-white"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-400"
                 value={contactName}
                 onChange={(e) => setContactName(e.target.value)}
                 placeholder="Person to contact on-site"
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs text-white/70">Contact Phone</label>
+              <label className="mb-1 block text-xs text-gray-600">Contact Phone</label>
               <input
-                className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 py-2 text-sm text-white"
+                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-400"
                 value={contactPhone}
                 onChange={(e) => setContactPhone(e.target.value)}
                 placeholder="Phone number"
@@ -177,10 +177,10 @@ export default function ServiceRequestForm({
           </div>
         </div>
 
-        <div className="md:col-span-2 border-t border-white/10 pt-4 mt-2">
+        <div className="md:col-span-2 border-t border-gray-200 pt-4 mt-2">
           <div className="flex items-center gap-2 mb-3">
-            <RefreshCw className="w-4 h-4 text-white/70" />
-            <span className="text-sm font-medium text-white">Recurring Service</span>
+            <RefreshCw className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-900">Recurring Service</span>
           </div>
           <div className="flex items-center gap-3 mb-3">
             <label className="flex items-center gap-2 cursor-pointer">
@@ -188,17 +188,17 @@ export default function ServiceRequestForm({
                 type="checkbox"
                 checked={isRecurring}
                 onChange={(e) => setIsRecurring(e.target.checked)}
-                className="rounded border-white/10 bg-[#0b1220]"
+                className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
               />
-              <span className="text-sm text-white">This is a recurring service</span>
+              <span className="text-sm text-gray-700">This is a recurring service</span>
             </label>
           </div>
           {isRecurring && (
             <div className="grid gap-3 md:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs text-white/70">How Often?</label>
+                <label className="mb-1 block text-xs text-gray-600">How Often?</label>
                 <select
-                  className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 py-2 text-sm text-white"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   value={recurringFrequency}
                   onChange={(e) => setRecurringFrequency(e.target.value as RecurringFrequency)}
                 >
@@ -210,13 +210,13 @@ export default function ServiceRequestForm({
                 </select>
               </div>
               <div>
-                <label className="mb-1 block text-xs text-white/70">
+                <label className="mb-1 block text-xs text-gray-600">
                   Request Discount (%)
-                  <span className="ml-1 text-xs text-white/50">- Workers may offer discounts for recurring jobs</span>
+                  <span className="ml-1 text-xs text-gray-500">- Workers may offer discounts for recurring jobs</span>
                 </label>
                 <input
                   type="number"
-                  className="w-full rounded-xl border border-white/10 bg-[#0b1220] px-3 py-2 text-sm text-white"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-gray-400"
                   value={recurringDiscount}
                   onChange={(e) => setRecurringDiscount(Number(e.target.value))}
                   min={0}
@@ -229,7 +229,7 @@ export default function ServiceRequestForm({
         </div>
       </div>
 
-      <button className="mt-4 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-black hover:bg-white/90">
+      <button className="mt-4 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 shadow-sm">
         Create Request
       </button>
     </form>

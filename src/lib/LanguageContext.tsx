@@ -32,7 +32,29 @@ const translations = {
     'auth.role.worker': 'Worker',
     'auth.role.admin': 'Admin',
     'auth.role.dual': 'Dual',
-    
+    'auth.createAccount': 'Create Account',
+    'auth.chooseHowToUse': 'Choose how you want to use Fannu Bazaar',
+    'auth.findSkills': 'Find Skills',
+    'auth.offerSkills': 'Offer Skills',
+    'auth.needSkilledWorkers': 'I need skilled workers',
+    'auth.provideServices': 'I want to provide services',
+    'auth.continue': 'Continue',
+    'auth.back': 'Back',
+    'auth.gettingStarted': 'Getting Started',
+    'auth.loginToExplore': "Let's login for explore continues",
+    'auth.emailOrPhone': 'Email or Phone Number',
+    'auth.forgotPassword': 'Forgot Password?',
+    'auth.hide': 'Hide',
+    'auth.view': 'View',
+    'auth.fullName': 'Full Name',
+    'auth.phoneOptional': 'Phone (optional)',
+    'auth.logIn': 'Log In',
+    'auth.signingUpAs': 'You are signing up as a {role}',
+    'auth.chooseAccountType': 'Choose Account Type',
+    'auth.continueAs': 'Continue as Customer or Worker',
+    'auth.or': 'Or',
+    'auth.continueWithGoogle': 'Continue with Google',
+
     // Dashboard - Common
     'dashboard.welcome': 'Welcome',
     'dashboard.notifications': 'Notifications',
@@ -147,6 +169,16 @@ const translations = {
     'action.showMore': 'Show more',
     'action.showLess': 'Show less',
     
+    // Navigation (BottomNav)
+    'nav.dashboard': 'Dashboard',
+    'nav.users': 'Users',
+    'nav.jobs': 'Jobs',
+    'nav.profile': 'Profile',
+    'nav.home': 'Home',
+    'nav.myJobs': 'My Jobs',
+    'nav.workers': 'Workers',
+    'nav.myWork': 'My Work',
+
     // Common Labels
     'label.name': 'Name',
     'label.email': 'Email',
@@ -175,6 +207,10 @@ const translations = {
     // Footer
     'footer.rights': 'All rights reserved',
     'footer.version': 'Version',
+    'footer.developedBy': 'Developed by',
+    'footer.poweredBy': 'Powered by',
+    'footer.madeWith': 'Made with',
+    'footer.inMaldives': 'in Maldives',
     
     // Errors
     'error.generic': 'Something went wrong',
@@ -205,7 +241,29 @@ const translations = {
     'auth.role.worker': 'މުވައްޒަފު',
     'auth.role.admin': 'އެޑްމިން',
     'auth.role.dual': 'ދެ ރޯލް',
-    
+    'auth.createAccount': 'އައްކައުންޓު ހަދާ',
+    'auth.chooseHowToUse': 'ފަންނު ބާޒާރު ބޭނުންކުރާ ގޮތް ހިޔާރުކުރާ',
+    'auth.findSkills': 'ހުނަރު ހޯދާ',
+    'auth.offerSkills': 'ހުނަރު ދައްކާ',
+    'auth.needSkilledWorkers': 'ހުނަރެއްވާ މުވައްޒަފުން ބޭނުން',
+    'auth.provideServices': 'ހިދުމަތް ދިންނަން ބޭނުން',
+    'auth.continue': 'ކުރިއަށް',
+    'auth.back': 'ފަހަތަށް',
+    'auth.gettingStarted': 'ފަށާ',
+    'auth.loginToExplore': 'ހުއްދަ ހޯދުމަށް ލޮގިން ކުރައްވާ',
+    'auth.emailOrPhone': 'އީމެއިލް ނުވަތަ ފޯނު',
+    'auth.forgotPassword': 'ޕާސްވޯރޑް ހަނގީކޮއްފަ؟',
+    'auth.hide': 'ފޮރުވާ',
+    'auth.view': 'ބަލާ',
+    'auth.fullName': 'ފުރިހަމަ ނަން',
+    'auth.phoneOptional': 'ފޯނު (އެދިވެގެންވާ)',
+    'auth.logIn': 'ލޮގިން',
+    'auth.signingUpAs': '{role} ކަމުގައި ރެޖިސްޓަރު ވަނީ',
+    'auth.chooseAccountType': 'އައްކައުންޓުގެ ބާވަތް ހިޔާރުކުރާ',
+    'auth.continueAs': 'ކަސްޓަމަރު ނުވަތަ މުވައްޒަފާ ގޮތުން ކުރިއަށް',
+    'auth.or': 'ނުވަތަ',
+    'auth.continueWithGoogle': 'ގުގލް އަށް ކުރިއަށް',
+
     // Dashboard - Common
     'dashboard.welcome': 'މަރުޙަބާ',
     'dashboard.notifications': 'އިނގިލާތި',
@@ -358,6 +416,10 @@ const translations = {
     // Footer
     'footer.rights': 'ހުރިހާ ޙައްޤެއް ރައްކާކުރެވިފަ',
     'footer.version': 'ވަރޝަން',
+    'footer.developedBy': 'ތަރައްޤީކުރި',
+    'footer.poweredBy': 'ފާހަނަކުރި',
+    'footer.madeWith': 'ހަދާފަ',
+    'footer.inMaldives': 'ދިވެހިރާއްޖޭގައި',
     
     // Errors
     'error.generic': 'މައްސަބަތު ދިމާވިއެވެ',

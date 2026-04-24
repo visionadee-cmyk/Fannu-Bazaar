@@ -230,6 +230,9 @@ export type ServiceRequest = {
   recurringFrequency?: RecurringFrequency
   recurringDiscount?: number
 
+  // Category-specific dynamic form data
+  categorySpecificData?: Record<string, string | number | boolean | string[]>
+
   customerId: string
   interestedWorkerIds?: string[]
   acceptedWorkerId?: string

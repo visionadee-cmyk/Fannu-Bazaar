@@ -4,14 +4,16 @@ import AdminDashboard from './components/AdminDashboard'
 import CustomerDashboard from './components/CustomerDashboard'
 import WorkerDashboard from './components/WorkerDashboard'
 import InstallButton from './components/InstallButton'
-import BottomNav from './components/BottomNav'
+import BottomNav, { type CustomerTab, type WorkerTab, type AdminTab } from './components/BottomNav'
 import NotificationBell from './components/NotificationBell'
 import Footer from './components/Footer'
 import LanguageToggle from './components/LanguageToggle'
 import { LanguageProvider, useLanguage } from './lib/LanguageContext'
-import { seedIfEmpty } from './lib/db'
-import type { SessionUser } from './lib/types'
+import { seedIfEmpty, getDB } from './lib/db'
+import type { AdminProfile, CustomerProfile, WorkerProfile, SessionUser } from './lib/types'
 import { Menu, X, ArrowLeftRight } from 'lucide-react'
+import { onAuthStateChanged } from 'firebase/auth'
+import { firebaseAuth } from './lib/firebase'
 
 function AppContent() {
   const { t, fontClass, language } = useLanguage()
@@ -23,6 +25,39 @@ function AppContent() {
   const [user, setUser] = useState<SessionUser | null>(null)
   const [impersonator, setImpersonator] = useState<SessionUser | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [authLoading, setAuthLoading] = useState(true)
+
+  // Bottom navigation tab state
+  const [customerTab, setCustomerTab] = useState<CustomerTab>('my')
+  const [workerTab, setWorkerTab] = useState<WorkerTab>('jobs')
+  const [adminTab, setAdminTab] = useState<AdminTab>('dashboard')
+
+  // Restore session from Firebase auth on page load
+  useEffect(() => {
+    const unsub = onAuthStateChanged(firebaseAuth, (firebaseUser) => {
+      if (firebaseUser?.email) {
+        const db = getDB()
+        const normalizedEmail = firebaseUser.email.toLowerCase().trim()
+        
+        // Look up user in database by email
+        const admin = db.admins.find((a: AdminProfile) => a.email.toLowerCase() === normalizedEmail)
+        const customer = db.customers.find((c: CustomerProfile) => c.email?.toLowerCase() === normalizedEmail)
+        const worker = db.workers.find((w: WorkerProfile) => w.email?.toLowerCase() === normalizedEmail)
+        
+        if (admin) {
+          setUser({ id: admin.id, role: 'admin', name: admin.name })
+        } else if (customer && worker) {
+          setUser({ id: customer.id, role: 'dual', name: customer.name, currentView: 'customer', workerId: worker.id })
+        } else if (customer) {
+          setUser({ id: customer.id, role: 'customer', name: customer.name })
+        } else if (worker) {
+          setUser({ id: worker.id, role: 'worker', name: worker.name })
+        }
+      }
+      setAuthLoading(false)
+    })
+    return () => unsub()
+  }, [])
 
   // Toggle between customer and worker view for dual role users
   const toggleUserView = () => {
@@ -32,6 +67,14 @@ function AppContent() {
         currentView: user.currentView === 'customer' ? 'worker' : 'customer'
       })
     }
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-emerald-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+      </div>
+    )
   }
 
   if (!user) {
@@ -216,6 +259,8 @@ function AppContent() {
         {user.role === 'admin' ? (
           <AdminDashboard
             user={user}
+            activeTab={adminTab}
+            onTabChange={setAdminTab}
             onImpersonate={(next: SessionUser) => {
               if (!impersonator) setImpersonator(user)
               setUser(next)
@@ -224,19 +269,45 @@ function AppContent() {
         ) : user.role === 'dual' ? (
           // Dual role: render based on currentView
           user.currentView === 'customer' ? (
-            <CustomerDashboard user={{ ...user, id: user.customerId!, role: 'customer' }} />
+            <CustomerDashboard 
+              user={{ ...user, id: user.customerId!, role: 'customer' }} 
+              activeTab={customerTab}
+              onTabChange={setCustomerTab}
+            />
           ) : (
-            <WorkerDashboard user={{ ...user, id: user.workerId!, role: 'worker' }} />
+            <WorkerDashboard 
+              user={{ ...user, id: user.workerId!, role: 'worker' }} 
+              activeTab={workerTab}
+              onTabChange={setWorkerTab}
+            />
           )
         ) : user.role === 'customer' ? (
-          <CustomerDashboard user={user} />
+          <CustomerDashboard 
+            user={user} 
+            activeTab={customerTab}
+            onTabChange={setCustomerTab}
+          />
         ) : (
-          <WorkerDashboard user={user} />
+          <WorkerDashboard 
+            user={user} 
+            activeTab={workerTab}
+            onTabChange={setWorkerTab}
+          />
         )}
       </main>
       
       <BottomNav
         userRole={user.role === 'dual' ? user.currentView! : user.role}
+        activeTab={user.role === 'admin' ? adminTab : user.role === 'customer' || (user.role === 'dual' && user.currentView === 'customer') ? customerTab : workerTab}
+        onTabChange={(tab) => {
+          if (user.role === 'admin') {
+            setAdminTab(tab as AdminTab)
+          } else if (user.role === 'customer' || user.currentView === 'customer') {
+            setCustomerTab(tab as CustomerTab)
+          } else {
+            setWorkerTab(tab as WorkerTab)
+          }
+        }}
         onSignOut={() => {
           setUser(null)
           setImpersonator(null)

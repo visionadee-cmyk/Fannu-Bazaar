@@ -15,6 +15,7 @@ import {
 } from '../lib/db'
 import { useDBSnapshot } from '../lib/hooks'
 import type { ServiceCategory, ServiceRequest, SessionUser } from '../lib/types'
+import type { WorkerTab } from './BottomNav'
 import WorkerProfileForm from './WorkerProfileForm'
 import Illustration from './Illustration'
 import CategoryPicker from './CategoryPicker'
@@ -45,9 +46,36 @@ function formatIso(iso?: string) {
   return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-export default function WorkerDashboard({ user }: { user: SessionUser }) {
+interface WorkerDashboardProps {
+  user: SessionUser;
+  activeTab?: WorkerTab;
+  onTabChange?: (tab: WorkerTab) => void;
+}
+
+// Map external tab names to internal tab names
+const tabMapping: Record<WorkerTab, 'browse' | 'assigned' | 'completed' | 'actions' | 'profile'> = {
+  jobs: 'browse',
+  myWork: 'assigned',
+  completed: 'completed',
+  profile: 'profile',
+};
+
+const reverseTabMapping: Record<'browse' | 'assigned' | 'completed' | 'actions' | 'profile', WorkerTab> = {
+  browse: 'jobs',
+  assigned: 'myWork',
+  completed: 'completed',
+  actions: 'myWork',
+  profile: 'profile',
+};
+
+export default function WorkerDashboard({ user, activeTab: externalTab, onTabChange }: WorkerDashboardProps) {
   const db = useDBSnapshot()
-  const [activeTab, setActiveTab] = useState<'browse' | 'assigned' | 'completed' | 'actions' | 'profile'>('browse')
+  const [internalTab, setInternalTab] = useState<'browse' | 'assigned' | 'completed' | 'actions' | 'profile'>('browse')
+  const activeTab = externalTab ? tabMapping[externalTab] : internalTab
+  const setActiveTab = (tab: 'browse' | 'assigned' | 'completed' | 'actions' | 'profile') => {
+    setInternalTab(tab)
+    onTabChange?.(reverseTabMapping[tab])
+  }
   const [browseCategory, setBrowseCategory] = useState<ServiceCategory | 'All'>('All')
   const [browseSubcategory, setBrowseSubcategory] = useState<string | undefined>(undefined)
   const [browseQuery, setBrowseQuery] = useState('')

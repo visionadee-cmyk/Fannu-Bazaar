@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import {
   createRequest,
+  createWorker,
   selectWorker,
   customerConfirmInspection,
   customerConfirmInspectionCompleted,
@@ -20,7 +21,8 @@ import RequestDetailModal from './RequestDetailModal'
 import Illustration from './Illustration'
 import CategoryPicker from './CategoryPicker'
 import type { ServiceCategory, ServiceRequest, SessionUser, WorkerProfile } from '../lib/types'
-import { ALL_CATEGORIES } from '../lib/categoryConfig'
+import type { CustomerTab } from './BottomNav'
+import { ALL_CATEGORIES, getCategoryFormConfig } from '../lib/categoryConfig'
 import { Search, Briefcase, CheckCircle, Plus, Star, User,
   Wrench, DollarSign, MapPin, Clock, AlertCircle, FileText, RefreshCw, Phone } from 'lucide-react'
 
@@ -47,18 +49,39 @@ function formatIso(iso?: string) {
   return new Date(iso).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 
-export default function CustomerDashboard({ user }: { user: SessionUser }) {
+interface CustomerDashboardProps {
+  user: SessionUser;
+  activeTab?: CustomerTab;
+  onTabChange?: (tab: CustomerTab) => void;
+}
+
+export default function CustomerDashboard({ user, activeTab: externalTab, onTabChange }: CustomerDashboardProps) {
   const db = useDBSnapshot()
-  const [activeTab, setActiveTab] = useState<'create' | 'my' | 'completed' | 'confirm' | 'workers'>('my')
+  const [internalTab, setInternalTab] = useState<CustomerTab>('my')
+  const activeTab = externalTab ?? internalTab
+  const setActiveTab = (tab: CustomerTab) => {
+    setInternalTab(tab)
+    onTabChange?.(tab)
+  }
   const [workerCategory, setWorkerCategory] = useState<ServiceCategory | 'All'>('All')
   const [workerSubcategory, setWorkerSubcategory] = useState<string | undefined>(undefined)
   const [workerQuery, setWorkerQuery] = useState('')
   const [profileModalWorkerId, setProfileModalWorkerId] = useState<string | null>(null)
   const [detailRequest, setDetailRequest] = useState<ServiceRequest | null>(null)
   const [reminders, setReminders] = useState<ReturnType<typeof checkUpcomingReminders>>([])
+  const [showRegisterWorker, setShowRegisterWorker] = useState(false)
+
+  // Check if this user already has a worker profile
+  const existingWorker = useMemo(() => {
+    const customer = db.customers.find((c) => c.id === user.id)
+    if (!customer?.email) return null
+    return db.workers.find((w) => w.email?.toLowerCase() === customer.email.toLowerCase())
+  }, [db.customers, db.workers, user.id])
 
   useEffect(() => {
     if (activeTab !== 'create') return
+    const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
+    if (!isMobile) return
     const prevOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
@@ -169,6 +192,15 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
                   loading="eager"
                 />
               </div>
+              {!existingWorker && (
+                <button
+                  onClick={() => setShowRegisterWorker(true)}
+                  className="px-4 py-2 rounded-full text-sm font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors flex items-center gap-2"
+                >
+                  <Briefcase className="w-4 h-4" />
+                  Become a Worker
+                </button>
+              )}
               <span className="px-4 py-2 rounded-full text-sm font-medium bg-green-100 text-green-700">
                 {myActiveRequests.length} Active Request{myActiveRequests.length !== 1 ? 's' : ''}
               </span>
@@ -393,6 +425,188 @@ export default function CustomerDashboard({ user }: { user: SessionUser }) {
           customerId={user.id}
         />
       )}
+      {showRegisterWorker && (
+        <RegisterWorkerModal
+          customerId={user.id}
+          onClose={() => setShowRegisterWorker(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+function RegisterWorkerModal({ customerId, onClose }: { customerId: string; onClose: () => void }) {
+  const db = useDBSnapshot()
+  const customer = db.customers.find((c) => c.id === customerId)
+
+  const [name, setName] = useState(customer?.name || '')
+  const [phone, setPhone] = useState(customer?.phone || '')
+  const [categories, setCategories] = useState<string[]>([])
+  const [skills, setSkills] = useState('')
+  const [about, setAbout] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!customer?.email) return
+
+    setIsSubmitting(true)
+    createWorker({
+      name: name.trim(),
+      email: customer.email,
+      phone: phone.trim() || undefined,
+      active: true,
+    })
+
+    // Get the newly created worker and update with additional details
+    const newWorker = db.workers.find((w) => w.email?.toLowerCase() === customer.email?.toLowerCase())
+    if (newWorker) {
+      const skillList = skills.split(',').map((s) => s.trim()).filter(Boolean)
+      Object.assign(newWorker, {
+        categories: categories.length > 0 ? categories : ['Other'],
+        skills: skillList,
+        about: about.trim() || undefined,
+      })
+    }
+
+    setIsSubmitting(false)
+    onClose()
+    alert('You are now registered as a worker! Please log out and log back in to access the Worker Dashboard.')
+  }
+
+  const toggleCategory = (cat: string) => {
+    setCategories((prev) =>
+      prev.includes(cat) ? prev.filter((c) => c !== cat) : [...prev, cat]
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/50">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-3xl bg-white shadow-2xl"
+      >
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-3 p-4 border-b border-gray-100 bg-white">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: THEME.amber }}>
+              <Briefcase className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">Become a Worker</h2>
+              <p className="text-sm text-gray-500">Offer your services and earn</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-xl hover:bg-gray-100 transition-colors"
+          >
+            <span className="sr-only">Close</span>
+            <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-2">Full Name</label>
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              placeholder="Your name as it will appear to customers"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-2">Phone Number</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              placeholder="+960..."
+            />
+            <p className="text-xs text-gray-500 mt-1">Customers will see this to contact you</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-2">
+              Service Categories <span className="text-red-500">*</span>
+            </label>
+            <p className="text-xs text-gray-500 mb-2">Select all that apply</p>
+            <div className="flex flex-wrap gap-2">
+              {ALL_CATEGORIES.map((cat) => {
+                const selected = categories.includes(cat)
+                return (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => toggleCategory(cat)}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                      selected
+                        ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-200'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                )
+              })}
+            </div>
+            {categories.length === 0 && (
+              <p className="text-xs text-red-500 mt-1">Please select at least one category</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-2">Skills</label>
+            <input
+              type="text"
+              value={skills}
+              onChange={(e) => setSkills(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              placeholder="e.g., AC repair, plumbing, painting, electrical..."
+            />
+            <p className="text-xs text-gray-500 mt-1">Separate multiple skills with commas</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-2">About You</label>
+            <textarea
+              value={about}
+              onChange={(e) => setAbout(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500 min-h-[100px]"
+              placeholder="Describe your experience, expertise, and what makes you a great choice..."
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-3 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting || categories.length === 0 || !name.trim()}
+              className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+              style={{ background: THEME.primary }}
+            >
+              {isSubmitting ? 'Creating...' : 'Register as Worker'}
+            </button>
+          </div>
+
+          <p className="text-xs text-gray-500 text-center">
+            Your email ({customer?.email}) will be used for both customer and worker accounts.
+          </p>
+        </form>
+      </motion.div>
     </div>
   )
 }
@@ -430,6 +644,7 @@ function ServiceRequestForm({
     budget: number
     urgency: 'low' | 'medium' | 'high'
     requiresInspection?: boolean
+    categorySpecificData?: Record<string, string | number | boolean | string[]>
   }) => void
 }) {
   const [category, setCategory] = useState<ServiceCategory>('AC')
@@ -441,16 +656,34 @@ function ServiceRequestForm({
   const [urgency, setUrgency] = useState<'low' | 'medium' | 'high'>('medium')
   const [requiresInspection, setRequiresInspection] = useState(true)
   const [showCategoryPicker, setShowCategoryPicker] = useState(true)
+  const [categorySpecificData, setCategorySpecificData] = useState<Record<string, string | number | boolean | string[]>>({})
   const detailsRef = useRef<HTMLDivElement | null>(null)
+
+  // Get category-specific form fields
+  const categoryFields = useMemo(() => getCategoryFormConfig(category), [category])
+  const hasCustomFields = categoryFields.length > 0
 
   const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
 
   const goToDetails = () => {
-    if (!isMobile) return
     setShowCategoryPicker(false)
-    requestAnimationFrame(() => {
-      detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    })
+    if (isMobile) {
+      requestAnimationFrame(() => {
+        detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      })
+    }
+  }
+
+  // Handle category-specific field changes
+  const handleFieldChange = (fieldName: string, value: string | number | boolean | string[]) => {
+    setCategorySpecificData((prev) => ({ ...prev, [fieldName]: value }))
+  }
+
+  // Clear category-specific data when category changes
+  const handleCategoryChange = (newCategory: ServiceCategory) => {
+    setCategory(newCategory)
+    setCategorySpecificData({})
+    setSubcategory(undefined)
   }
 
   return (
@@ -467,6 +700,7 @@ function ServiceRequestForm({
           budget,
           urgency,
           requiresInspection,
+          categorySpecificData: hasCustomFields ? categorySpecificData : undefined,
         })
       }}
     >
@@ -506,7 +740,7 @@ function ServiceRequestForm({
                 subcategory={subcategory}
                 onChange={(next) => {
                   if (next.category === 'All') return
-                  setCategory(next.category)
+                  handleCategoryChange(next.category)
                   setSubcategory(next.subcategory)
                   goToDetails()
                 }}
@@ -516,8 +750,7 @@ function ServiceRequestForm({
                 className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
                 value={category}
                 onChange={(e) => {
-                  setCategory(e.target.value as ServiceCategory)
-                  setSubcategory(undefined)
+                  handleCategoryChange(e.target.value as ServiceCategory)
                   goToDetails()
                 }}
               >
@@ -564,6 +797,131 @@ function ServiceRequestForm({
           </select>
         </div>
       </div>
+
+      {/* Category-specific fields */}
+      {hasCustomFields && (
+        <div className="border-t border-gray-200 pt-5 mt-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+              <Wrench className="w-4 h-4 text-emerald-600" />
+            </div>
+            <h3 className="font-semibold text-gray-900">{category} Details</h3>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {categoryFields.map((field) => (
+              <div key={field.name} className={field.type === 'textarea' ? 'md:col-span-2' : ''}>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  {field.label}
+                  {field.required && <span className="text-red-500 ml-1">*</span>}
+                </label>
+                {field.helperText && (
+                  <p className="text-xs text-gray-500 mb-1.5">{field.helperText}</p>
+                )}
+                {field.type === 'select' && (
+                  <select
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={(categorySpecificData[field.name] as string) || ''}
+                    onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                    required={field.required}
+                  >
+                    <option value="">Select {field.label}</option>
+                    {field.options?.map((opt) => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                )}
+                {field.type === 'multiselect' && (
+                  <div className="flex flex-wrap gap-2">
+                    {field.options?.map((opt) => {
+                      const selected = ((categorySpecificData[field.name] as string[]) || []).includes(opt)
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => {
+                            const current = (categorySpecificData[field.name] as string[]) || []
+                            const updated = selected
+                              ? current.filter((c) => c !== opt)
+                              : [...current, opt]
+                            handleFieldChange(field.name, updated)
+                          }}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                            selected
+                              ? 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200'
+                              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+                {field.type === 'text' && (
+                  <input
+                    type="text"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder={field.placeholder}
+                    value={(categorySpecificData[field.name] as string) || ''}
+                    onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                    required={field.required}
+                  />
+                )}
+                {field.type === 'number' && (
+                  <input
+                    type="number"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    min={field.min}
+                    max={field.max}
+                    step={field.step || 1}
+                    value={(categorySpecificData[field.name] as number) || ''}
+                    onChange={(e) => handleFieldChange(field.name, Number(e.target.value))}
+                    required={field.required}
+                  />
+                )}
+                {field.type === 'date' && (
+                  <input
+                    type="date"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={(categorySpecificData[field.name] as string) || ''}
+                    onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                    required={field.required}
+                  />
+                )}
+                {field.type === 'time' && (
+                  <input
+                    type="time"
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    value={(categorySpecificData[field.name] as string) || ''}
+                    onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                    required={field.required}
+                  />
+                )}
+                {field.type === 'textarea' && (
+                  <textarea
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 min-h-[80px]"
+                    placeholder={field.placeholder}
+                    value={(categorySpecificData[field.name] as string) || ''}
+                    onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                    required={field.required}
+                  />
+                )}
+                {field.type === 'checkbox' && (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                      checked={(categorySpecificData[field.name] as boolean) || false}
+                      onChange={(e) => handleFieldChange(field.name, e.target.checked)}
+                    />
+                    <span className="text-sm text-gray-700">Yes</span>
+                  </label>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-4 pt-4">
         <button type="submit" className="px-8 py-3.5 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Create Request</button>

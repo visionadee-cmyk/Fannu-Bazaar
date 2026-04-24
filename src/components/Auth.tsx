@@ -67,7 +67,7 @@ const WelcomeIllustration = () => (
 )
 
 export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void }) {
-  const { language, setLanguage, fontClass } = useLanguage()
+  const { t, language, setLanguage, fontClass } = useLanguage()
   const db = useDBSnapshot()
   const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
   const [activeTab, setActiveTab] = useState<'welcome' | 'login' | 'signup' | 'signup_form' | 'oauth_role'>('welcome')
@@ -604,8 +604,8 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
             <LoginIllustration />
             
             {/* Title */}
-            <h2 className="text-xl font-bold text-gray-800 text-center mb-1">Getting Started</h2>
-            <p className="text-gray-500 text-center text-sm mb-6">Let's login for explore continues</p>
+            <h2 className="text-xl font-bold text-gray-800 text-center mb-1">{t('auth.gettingStarted')}</h2>
+            <p className="text-gray-500 text-center text-sm mb-6">{t('auth.loginToExplore')}</p>
 
             {/* Error Message */}
             {loginError && (
@@ -618,7 +618,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
             <div className="space-y-4">
               {/* Email Input */}
               <div>
-                <label className="text-xs text-gray-600 mb-1.5 block">Email or Phone Number</label>
+                <label className="text-xs text-gray-600 mb-1.5 block">{t('auth.emailOrPhone')}</label>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                     <Mail className="w-4 h-4 text-gray-400" />
@@ -636,7 +636,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
 
               {/* Password Input */}
               <div>
-                <label className="text-xs text-gray-600 mb-1.5 block">Password</label>
+                <label className="text-xs text-gray-600 mb-1.5 block">{t('auth.password')}</label>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                     <Lock className="w-4 h-4 text-gray-400" />
@@ -654,7 +654,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
                     className="absolute right-3 top-1/2 -translate-y-1/2 px-2 py-1 text-xs font-medium rounded"
                     style={{ color: showPassword ? THEME.coral : '#9CA3AF', background: showPassword ? '#FEE2E2' : 'transparent' }}
                   >
-                    {showPassword ? 'Hide' : 'View'}
+                    {showPassword ? t('auth.hide') : t('auth.view')}
                   </button>
                 </div>
               </div>
@@ -662,7 +662,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
               {/* Forgot Password */}
               <div className="text-right">
                 <button className="text-xs" style={{ color: THEME.coral }}>
-                  Forgot Password?
+                  {t('auth.forgotPassword')}
                 </button>
               </div>
 
@@ -672,7 +672,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
                 className="w-full py-3.5 rounded-xl font-semibold text-white shadow-md transition-all active:scale-95"
                 style={{ background: THEME.primary }}
               >
-                Sign In
+                {t('auth.signIn')}
               </button>
             </div>
 
@@ -715,15 +715,15 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
         <div className="w-full max-w-sm">
           <button onClick={() => setActiveTab('welcome')} className="mb-4 flex items-center gap-2 text-gray-500 hover:text-gray-700">
             <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Back</span>
+            <span className="text-sm">{t('auth.back')}</span>
           </button>
 
           <div className="bg-white rounded-3xl shadow-lg p-6">
             <WelcomeIllustration />
 
-            <h2 className="text-xl font-bold text-gray-800 text-center mb-1">Choose Account Type</h2>
+            <h2 className="text-xl font-bold text-gray-800 text-center mb-1">{t('auth.chooseAccountType')}</h2>
             <p className="text-gray-500 text-center text-sm mb-6">
-              Continue as Customer or Worker
+              {t('auth.continueAs')}
             </p>
 
             {loginError && (
@@ -742,8 +742,8 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
                     <Search className="w-6 h-6" style={{ color: THEME.primary }} />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-800">Customer</h3>
-                    <p className="text-xs text-gray-500">I need skilled workers</p>
+                    <h3 className="font-semibold text-gray-800">{t('auth.role.customer')}</h3>
+                    <p className="text-xs text-gray-500">{t('auth.needSkilledWorkers')}</p>
                   </div>
                 </div>
               </button>
@@ -757,8 +757,8 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
                     <Briefcase className="w-6 h-6 text-amber-500" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-800">Worker</h3>
-                    <p className="text-xs text-gray-500">I want to provide services</p>
+                    <h3 className="font-semibold text-gray-800">{t('auth.role.worker')}</h3>
+                    <p className="text-xs text-gray-500">{t('auth.provideServices')}</p>
                   </div>
                 </div>
               </button>
@@ -766,7 +766,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
 
             <div className="flex items-center gap-3 my-5">
               <div className="flex-1 h-px bg-gray-200" />
-              <span className="text-xs text-gray-400">Or</span>
+              <span className="text-xs text-gray-400">{t('auth.or')}</span>
               <div className="flex-1 h-px bg-gray-200" />
             </div>
 
@@ -776,7 +776,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
                 className="flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all"
               >
                 <Chrome className="w-4 h-4" />
-                <span className="text-xs font-medium text-gray-700">Continue with Google</span>
+                <span className="text-xs font-medium text-gray-700">{t('auth.continueWithGoogle')}</span>
               </button>
             </div>
           </div>
@@ -798,8 +798,8 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
           <div className="bg-white rounded-3xl shadow-lg p-6">
             <WelcomeIllustration />
             
-            <h2 className="text-xl font-bold text-gray-800 text-center mb-1">Create Account</h2>
-            <p className="text-gray-500 text-center text-sm mb-6">Choose how you want to use Fannu Bazaar</p>
+            <h2 className="text-xl font-bold text-gray-800 text-center mb-1">{t('auth.createAccount')}</h2>
+            <p className="text-gray-500 text-center text-sm mb-6">{t('auth.chooseHowToUse')}</p>
 
             <div className="space-y-3">
               <button
@@ -811,11 +811,11 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
                     <Search className="w-6 h-6" style={{ color: THEME.primary }} />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-800">Find Skills</h3>
-                    <p className="text-xs text-gray-500">I need skilled workers</p>
+                    <h3 className="font-semibold text-gray-800">{t('auth.findSkills')}</h3>
+                    <p className="text-xs text-gray-500">{t('auth.needSkilledWorkers')}</p>
                   </div>
                   <div className="text-xs font-semibold" style={{ color: THEME.primary }}>
-                    Continue
+                    {t('auth.continue')}
                   </div>
                 </div>
               </button>
@@ -829,11 +829,11 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
                     <Briefcase className="w-6 h-6 text-amber-500" />
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-semibold text-gray-800">Offer Skills</h3>
-                    <p className="text-xs text-gray-500">I want to provide services</p>
+                    <h3 className="font-semibold text-gray-800">{t('auth.offerSkills')}</h3>
+                    <p className="text-xs text-gray-500">{t('auth.provideServices')}</p>
                   </div>
                   <div className="text-xs font-semibold" style={{ color: THEME.primary }}>
-                    Continue
+                    {t('auth.continue')}
                   </div>
                 </div>
               </button>
@@ -859,7 +859,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
         <div className="w-full max-w-sm">
           <button onClick={() => setActiveTab('signup')} className="mb-4 flex items-center gap-2 text-gray-500 hover:text-gray-700">
             <ArrowLeft className="w-4 h-4" />
-            <span className="text-sm">Back</span>
+            <span className="text-sm">{t('auth.back')}</span>
           </button>
 
           <div className="bg-white rounded-3xl shadow-lg p-6">
@@ -871,8 +871,8 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
                   <Briefcase className="w-7 h-7 text-amber-500" />
                 )}
               </div>
-              <h2 className="text-xl font-bold text-gray-800">Create Account</h2>
-              <p className="text-gray-500 text-sm">You are signing up as a {role === 'customer' ? 'Customer' : 'Worker'}</p>
+              <h2 className="text-xl font-bold text-gray-800">{t('auth.createAccount')}</h2>
+              <p className="text-gray-500 text-sm">{t('auth.signingUpAs').replace('{role}', role === 'customer' ? t('auth.role.customer') : t('auth.role.worker'))}</p>
             </div>
 
             {loginError && (
@@ -883,17 +883,17 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
 
             <div className="space-y-4">
               <div>
-                <label className="text-xs text-gray-600 mb-1.5 block">Full Name</label>
+                <label className="text-xs text-gray-600 mb-1.5 block">{t('auth.fullName')}</label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Your name"
+                  placeholder={t('auth.name')}
                   className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-gray-800 focus:outline-none focus:border-green-400 text-sm"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-gray-600 mb-1.5 block">Email</label>
+                <label className="text-xs text-gray-600 mb-1.5 block">{t('auth.email')}</label>
                 <input
                   type="email"
                   value={email}
@@ -904,7 +904,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
               </div>
 
               <div>
-                <label className="text-xs text-gray-600 mb-1.5 block">Password</label>
+                <label className="text-xs text-gray-600 mb-1.5 block">{t('auth.password')}</label>
                 <div className="relative">
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
                     <Lock className="w-4 h-4 text-gray-400" />
@@ -925,13 +925,13 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
                       background: showPassword ? '#FEE2E2' : 'transparent',
                     }}
                   >
-                    {showPassword ? 'Hide' : 'View'}
+                    {showPassword ? t('auth.hide') : t('auth.view')}
                   </button>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs text-gray-600 mb-1.5 block">Phone (optional)</label>
+                <label className="text-xs text-gray-600 mb-1.5 block">{t('auth.phoneOptional')}</label>
                 <input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -945,15 +945,15 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
                 className="w-full py-3.5 rounded-xl font-semibold text-white shadow-md transition-all active:scale-95"
                 style={{ background: THEME.primary }}
               >
-                Create Account
+                {t('auth.createAccount')}
               </button>
             </div>
 
             <div className="mt-4 text-center">
               <p className="text-sm text-gray-500">
-                Already have an account?{' '}
+                {t('auth.alreadyHaveAccount')}{' '}
                 <button onClick={() => setActiveTab('login')} className="font-medium" style={{ color: THEME.primary }}>
-                  Log In
+                  {t('auth.logIn')}
                 </button>
               </p>
             </div>

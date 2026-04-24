@@ -376,10 +376,188 @@ export const CATEGORY_CONFIG: CategoryMeta[] = [
     blurb: 'Any other services',
     subcategories: ['Custom request'],
   },
+  // Food & Retail (61-67)
+  {
+    category: 'Baking',
+    filename: 'Creative%20team-bro.svg',
+    blurb: 'Cakes & baked goods',
+    subcategories: ['Birthday cakes', 'Wedding cakes', 'Custom cupcakes', 'Cookies', 'Pastries', 'Savory bakes'],
+  },
+  {
+    category: 'FoodStall',
+    filename: 'Cocktail%20bartender-bro.svg',
+    blurb: 'Local snacks & bites',
+    subcategories: ['Local snacks', 'Short eats', 'Bajiya', 'Keemia', 'Fresh juices', 'Tea/coffee'],
+  },
+  {
+    category: 'FreshProduce',
+    filename: 'Florist-amico.svg',
+    blurb: 'Fresh fish & local produce',
+    subcategories: ['Fresh fish', 'Dried fish', 'Local vegetables', 'Homemade pickles', 'Local fruits', 'Coconut products'],
+  },
+  // Vehicle Services (68)
+  {
+    category: 'VehicleCleaning',
+    filename: 'Bicycle%20workshop-rafiki.svg',
+    blurb: 'Bike & car cleaning',
+    subcategories: ['Bike washing', 'Car washing', 'Interior detailing', 'Engine cleaning', 'Seat shampooing', 'Waterless wash'],
+  },
+  // Creative & Rental (69-71)
+  {
+    category: 'Crafts',
+    filename: 'Creative%20team-bro.svg',
+    blurb: 'Handicrafts & school projects',
+    subcategories: ['School projects', 'Gift items', 'Home decor', 'Custom orders', 'Bead work', 'Paper crafts'],
+  },
+  {
+    category: 'Rentals',
+    filename: 'Logistics-cuate.svg',
+    blurb: 'Bike & equipment rental',
+    subcategories: ['Bike rental daily', 'Car rental daily', 'Event equipment', 'Tools', 'Camera gear', 'Costumes'],
+  },
+  {
+    category: 'RealEstate',
+    filename: 'Business%20growth-amico.svg',
+    blurb: 'House & rental assistance',
+    subcategories: ['Rental help', 'Property search', 'Tenant finding', 'Document help', 'Inspection visit'],
+  },
 ]
 
 export const ALL_CATEGORIES: ServiceCategory[] = CATEGORY_CONFIG.map((c) => c.category)
 
 export function getCategoryMeta(category: ServiceCategory) {
   return CATEGORY_CONFIG.find((c) => c.category === category)
+}
+
+// Category-specific form field types
+export type FormFieldType = 'text' | 'number' | 'date' | 'time' | 'select' | 'multiselect' | 'textarea' | 'checkbox'
+
+export type FormField = {
+  name: string
+  label: string
+  type: FormFieldType
+  placeholder?: string
+  required?: boolean
+  options?: string[]
+  min?: number
+  max?: number
+  step?: number
+  helperText?: string
+}
+
+export type CategoryFormConfig = {
+  category: ServiceCategory
+  fields: FormField[]
+}
+
+// Category-specific form configurations
+export const CATEGORY_FORM_CONFIG: CategoryFormConfig[] = [
+  // Food & Retail
+  {
+    category: 'Baking',
+    fields: [
+      { name: 'flavor', label: 'Flavor/Type', type: 'select', options: ['Vanilla', 'Chocolate', 'Strawberry', 'Red Velvet', 'Lemon', 'Custom'], required: true },
+      { name: 'size', label: 'Size/Servings', type: 'select', options: ['Small (4-6)', 'Medium (8-12)', 'Large (15-20)', 'Extra Large (25+)'], required: true },
+      { name: 'deliveryDate', label: 'Required Date', type: 'date', required: true },
+      { name: 'deliveryTime', label: 'Preferred Time', type: 'time' },
+      { name: 'dietary', label: 'Dietary Requirements', type: 'multiselect', options: ['Eggless', 'Sugar-free', 'Gluten-free', 'Vegan', 'Nut-free'], helperText: 'Select any dietary restrictions' },
+      { name: 'message', label: 'Message on Cake', type: 'text', placeholder: 'Happy Birthday John' },
+      { name: 'occasion', label: 'Occasion', type: 'select', options: ['Birthday', 'Wedding', 'Anniversary', 'Graduation', 'Corporate', 'Other'] },
+    ],
+  },
+  {
+    category: 'FoodStall',
+    fields: [
+      { name: 'itemType', label: 'Item Type', type: 'select', options: ['Savory snacks', 'Sweet snacks', 'Beverages', 'Combo meals'], required: true },
+      { name: 'quantity', label: 'Quantity/People', type: 'number', min: 1, required: true, helperText: 'Number of people or items needed' },
+      { name: 'deliveryDate', label: 'Required Date', type: 'date', required: true },
+      { name: 'deliveryTime', label: 'Required Time', type: 'time', required: true },
+      { name: 'spiceLevel', label: 'Spice Level', type: 'select', options: ['Mild', 'Medium', 'Spicy', 'Very Spicy'] },
+    ],
+  },
+  {
+    category: 'FreshProduce',
+    fields: [
+      { name: 'productType', label: 'Product Type', type: 'select', options: ['Fresh fish', 'Dried fish', 'Vegetables', 'Fruits', 'Pickles', 'Coconut products'], required: true },
+      { name: 'quantity', label: 'Quantity (kg/pieces)', type: 'number', min: 0.5, step: 0.5, required: true },
+      { name: 'deliveryPreference', label: 'Delivery Preference', type: 'select', options: ['Same day', 'Next day', 'Within 3 days', 'Pick up myself'], required: true },
+      { name: 'deliveryDate', label: 'Required Date', type: 'date' },
+      { name: 'freshness', label: 'Freshness Preference', type: 'select', options: ['Fresh catch of the day', 'Within 24 hours', 'Frozen is OK'] },
+    ],
+  },
+  // Vehicle Services
+  {
+    category: 'VehicleCleaning',
+    fields: [
+      { name: 'vehicleType', label: 'Vehicle Type', type: 'select', options: ['Bike', 'Car', 'Van', 'SUV', 'Pickup truck'], required: true },
+      { name: 'serviceType', label: 'Service Package', type: 'select', options: ['Exterior wash only', 'Interior cleaning', 'Full detailing', 'Engine cleaning', 'Seat shampooing'], required: true },
+      { name: 'vehicleCount', label: 'Number of Vehicles', type: 'number', min: 1, max: 10, required: true },
+      { name: 'preferredDate', label: 'Preferred Date', type: 'date' },
+      { name: 'preferredTime', label: 'Preferred Time', type: 'time' },
+      { name: 'locationType', label: 'Service Location', type: 'select', options: ['My location (home)', 'Worker location', 'Office/workplace'], required: true },
+    ],
+  },
+  // Education
+  {
+    category: 'Tutoring',
+    fields: [
+      { name: 'subject', label: 'Subject', type: 'select', options: ['Math', 'English', 'Science', 'Dhivehi', 'Islam', 'Computer', 'Business', 'Accounting'], required: true },
+      { name: 'gradeLevel', label: 'Grade/Level', type: 'select', options: ['Preschool', 'Grade 1-3', 'Grade 4-6', 'Grade 7-9', 'Grade 10', 'O Level', 'A Level', 'University'], required: true },
+      { name: 'studentCount', label: 'Number of Students', type: 'number', min: 1, max: 20, required: true, helperText: 'For batch tuition' },
+      { name: 'daysPerWeek', label: 'Days per Week', type: 'select', options: ['1 day', '2 days', '3 days', '4 days', '5 days', 'Weekends only'], required: true },
+      { name: 'sessionDuration', label: 'Session Duration', type: 'select', options: ['1 hour', '1.5 hours', '2 hours', '3 hours'], required: true },
+      { name: 'preferredDays', label: 'Preferred Days', type: 'multiselect', options: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'] },
+      { name: 'preferredTime', label: 'Preferred Time', type: 'select', options: ['Morning (8-12)', 'Afternoon (12-4)', 'Evening (4-8)', 'Night (after 8)'] },
+      { name: 'studentGender', label: 'Student Gender', type: 'select', options: ['Male only', 'Female only', 'Mixed batch'], helperText: 'For batch tuition preferences' },
+    ],
+  },
+  // Creative & Rental
+  {
+    category: 'Crafts',
+    fields: [
+      { name: 'projectType', label: 'Project Type', type: 'select', options: ['School project', 'Gift item', 'Home decor', 'Event decoration', 'Custom order'], required: true },
+      { name: 'craftType', label: 'Craft/Material Type', type: 'select', options: ['Paper craft', 'Bead work', 'Fabric', 'Wood', 'Recycled materials', 'Mixed media'], required: true },
+      { name: 'deadline', label: 'Deadline Date', type: 'date', required: true },
+      { name: 'quantity', label: 'Quantity Needed', type: 'number', min: 1, required: true },
+      { name: 'materialsProvided', label: 'Materials Provided by You?', type: 'checkbox', helperText: 'Check if you will provide materials' },
+      { name: 'budgetPerItem', label: 'Budget Per Item (MVR)', type: 'number', min: 10 },
+    ],
+  },
+  {
+    category: 'Rentals',
+    fields: [
+      { name: 'rentalType', label: 'Rental Type', type: 'select', options: ['Bike', 'Car', 'Event equipment', 'Tools', 'Camera gear', 'Costumes/attire'], required: true },
+      { name: 'startDate', label: 'Rental Start Date', type: 'date', required: true },
+      { name: 'endDate', label: 'Rental End Date', type: 'date', required: true },
+      { name: 'pickupTime', label: 'Pickup Time', type: 'time' },
+      { name: 'returnTime', label: 'Return Time', type: 'time' },
+      { name: 'quantity', label: 'Quantity', type: 'number', min: 1, required: true },
+      { name: 'purpose', label: 'Purpose', type: 'text', placeholder: 'e.g., Wedding photoshoot, DIY project' },
+      { name: 'licenseProvided', label: 'Valid License Available?', type: 'checkbox', helperText: 'For vehicle rentals' },
+    ],
+  },
+  {
+    category: 'RealEstate',
+    fields: [
+      { name: 'serviceType', label: 'Service Type', type: 'select', options: ['Looking to rent', 'Looking for tenant', 'Property search', 'Document assistance'], required: true },
+      { name: 'propertyType', label: 'Property Type', type: 'select', options: ['Apartment', 'House', 'Room', 'Office space', 'Shop', 'Warehouse'], required: true },
+      { name: 'bedrooms', label: 'Bedrooms Needed', type: 'select', options: ['Studio', '1 bedroom', '2 bedrooms', '3 bedrooms', '4+ bedrooms'] },
+      { name: 'budgetMin', label: 'Min Budget (MVR/month)', type: 'number', min: 0 },
+      { name: 'budgetMax', label: 'Max Budget (MVR/month)', type: 'number', min: 0, required: true },
+      { name: 'preferredLocation', label: 'Preferred Area/Location', type: 'text', placeholder: 'e.g., Male, Hulhumale, Addu' },
+      { name: 'moveInDate', label: 'Move-in Date', type: 'date' },
+      { name: 'duration', label: 'Rental Duration', type: 'select', options: ['Short term (1-3 months)', 'Medium term (3-6 months)', 'Long term (6+ months)', 'Permanent'] },
+      { name: 'furnished', label: 'Furnished?', type: 'select', options: ['Furnished', 'Unfurnished', 'Semi-furnished', 'Any'] },
+    ],
+  },
+  // Default/generic for categories without specific config
+]
+
+export function getCategoryFormConfig(category: ServiceCategory): FormField[] {
+  const config = CATEGORY_FORM_CONFIG.find((c) => c.category === category)
+  return config?.fields ?? []
+}
+
+export function hasCategorySpecificFields(category: ServiceCategory): boolean {
+  return CATEGORY_FORM_CONFIG.some((c) => c.category === category)
 }

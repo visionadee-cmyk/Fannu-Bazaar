@@ -14,6 +14,7 @@ import { useDBSnapshot } from '../lib/hooks'
 import WorkerProfileModal from './WorkerProfileModal'
 import Illustration from './Illustration'
 import type { CustomerProfile, SessionUser, ServiceRequest, WorkerProfile } from '../lib/types'
+import type { AdminTab } from './BottomNav'
 import {
   Users, Briefcase, Wrench, Settings, Search, Plus,
   Edit2, Trash2, Power, PowerOff, User, Star,
@@ -54,15 +55,42 @@ function formatIso(iso?: string) {
   return d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+interface AdminDashboardProps {
+  user: SessionUser;
+  activeTab?: AdminTab;
+  onTabChange?: (tab: AdminTab) => void;
+  onImpersonate?: (u: SessionUser) => void;
+}
+
+// Map external tab names to internal tab names
+const tabMapping: Record<AdminTab, 'overview' | 'customers' | 'workers' | 'works' | 'settings'> = {
+  dashboard: 'overview',
+  users: 'customers',
+  jobs: 'works',
+  profile: 'settings',
+};
+
+const reverseTabMapping: Record<'overview' | 'customers' | 'workers' | 'works' | 'settings', AdminTab> = {
+  overview: 'dashboard',
+  customers: 'users',
+  workers: 'users',
+  works: 'jobs',
+  settings: 'profile',
+};
+
 export default function AdminDashboard({
   user,
+  activeTab: externalTab,
+  onTabChange,
   onImpersonate,
-}: {
-  user: SessionUser
-  onImpersonate?: (u: SessionUser) => void
-}) {
+}: AdminDashboardProps) {
   const db = useDBSnapshot()
-  const [tab, setTab] = useState<'overview' | 'customers' | 'workers' | 'works' | 'settings'>('overview')
+  const [internalTab, setInternalTab] = useState<'overview' | 'customers' | 'workers' | 'works' | 'settings'>('overview')
+  const tab = externalTab ? tabMapping[externalTab] : internalTab
+  const setTab = (t: 'overview' | 'customers' | 'workers' | 'works' | 'settings') => {
+    setInternalTab(t)
+    onTabChange?.(reverseTabMapping[t])
+  }
   const [profileModalWorkerId, setProfileModalWorkerId] = useState<string | null>(null)
 
   const adminProfile = useMemo(() => db.admins.find((a) => a.id === user.id), [db.admins, user.id])

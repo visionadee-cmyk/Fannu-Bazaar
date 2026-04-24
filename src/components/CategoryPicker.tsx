@@ -77,6 +77,7 @@ export default function CategoryPicker({
           onChange={(c) => onChange({ category: c, subcategory: undefined })}
           dense
           className=""
+          filteredCategories={normalizedQuery ? categoryMatches : undefined}
         />
       </div>
 

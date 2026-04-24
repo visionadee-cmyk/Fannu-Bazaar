@@ -37,9 +37,18 @@ export default function InstallButton() {
 
     // Check if service worker is registered
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch((err) => {
-        console.error('Service Worker registration failed:', err);
-      });
+      const isDev = (import.meta as any).env?.DEV
+      if (isDev) {
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+          regs.forEach((r) => void r.unregister())
+        }).catch((err) => {
+          console.error('Service Worker unregister failed:', err)
+        })
+      } else {
+        navigator.serviceWorker.register('/sw.js').catch((err) => {
+          console.error('Service Worker registration failed:', err);
+        });
+      }
     }
 
     return () => {
