@@ -1,4 +1,4 @@
-export type Role = 'customer' | 'worker' | 'admin'
+export type Role = 'customer' | 'worker' | 'admin' | 'dual'
 
 export type ServiceCategory =
   // Home Services (1-12)
@@ -69,6 +69,16 @@ export type ServiceCategory =
   | 'ChildCare'
   | 'ElderCare'
   | 'Other'
+  // Food & Retail (61-67)
+  | 'Baking'
+  | 'FoodStall'
+  | 'FreshProduce'
+  // Vehicle Services (68)
+  | 'VehicleCleaning'
+  // Creative & Rental (69-71)
+  | 'Crafts'
+  | 'Rentals'
+  | 'RealEstate'
 
 export type ServiceRequestStatus =
   | 'open'
@@ -90,6 +100,9 @@ export type SessionUser = {
   id: string
   role: Role
   name: string
+  customerId?: string
+  workerId?: string
+  currentView?: 'customer' | 'worker'
 }
 
 export type AdminProfile = {

@@ -31,6 +31,7 @@ const translations = {
     'auth.role.customer': 'Customer',
     'auth.role.worker': 'Worker',
     'auth.role.admin': 'Admin',
+    'auth.role.dual': 'Dual',
     
     // Dashboard - Common
     'dashboard.welcome': 'Welcome',
@@ -203,6 +204,7 @@ const translations = {
     'auth.role.customer': 'ކަސްޓަމަރު',
     'auth.role.worker': 'މުވައްޒަފު',
     'auth.role.admin': 'އެޑްމިން',
+    'auth.role.dual': 'ދެ ރޯލް',
     
     // Dashboard - Common
     'dashboard.welcome': 'މަރުޙަބާ',

@@ -11,10 +11,10 @@ import LanguageToggle from './components/LanguageToggle'
 import { LanguageProvider, useLanguage } from './lib/LanguageContext'
 import { seedIfEmpty } from './lib/db'
 import type { SessionUser } from './lib/types'
-import { Menu, X } from 'lucide-react'
+import { Menu, X, ArrowLeftRight } from 'lucide-react'
 
 function AppContent() {
-  const { t, fontClass } = useLanguage()
+  const { t, fontClass, language } = useLanguage()
   
   useEffect(() => {
     void seedIfEmpty()
@@ -23,6 +23,16 @@ function AppContent() {
   const [user, setUser] = useState<SessionUser | null>(null)
   const [impersonator, setImpersonator] = useState<SessionUser | null>(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
+  // Toggle between customer and worker view for dual role users
+  const toggleUserView = () => {
+    if (user?.role === 'dual' && user.currentView) {
+      setUser({
+        ...user,
+        currentView: user.currentView === 'customer' ? 'worker' : 'customer'
+      })
+    }
+  }
 
   if (!user) {
     return <Auth onLogin={setUser} />
@@ -50,8 +60,27 @@ function AppContent() {
           <div className="hidden md:flex items-center gap-3">
             <LanguageToggle />
             
+            {/* Dual Role View Toggle */}
+            {user.role === 'dual' && (
+              <button
+                onClick={toggleUserView}
+                className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:from-emerald-600 hover:to-teal-600 transition-all"
+              >
+                <ArrowLeftRight className="w-4 h-4" />
+                <span>
+                  {user.currentView === 'customer' 
+                    ? (language === 'en' ? 'Switch to Worker' : 'މުވައްޒަފު މޯޑަށް')
+                    : (language === 'en' ? 'Switch to Customer' : 'ކަސްޓަމަރު މޯޑަށް')
+                  }
+                </span>
+              </button>
+            )}
+            
             <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100 capitalize">
-              {t(`auth.role.${user.role}`)}
+              {user.role === 'dual' 
+                ? (user.currentView === 'customer' ? t('auth.role.customer') : t('auth.role.worker'))
+                : t(`auth.role.${user.role}`)
+              }
             </span>
 
             {isImpersonating && (
@@ -116,10 +145,32 @@ function AppContent() {
                 <div>
                   <div className="font-semibold text-gray-900">{user.name}</div>
                   <div className="mt-0.5 inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-emerald-100 capitalize">
-                    {user.role}
+                    {user.role === 'dual' 
+                      ? (user.currentView === 'customer' ? t('auth.role.customer') : t('auth.role.worker'))
+                      : user.role
+                    }
                   </div>
                 </div>
               </div>
+
+              {/* Mobile Dual Role Toggle */}
+              {user.role === 'dual' && (
+                <button
+                  onClick={() => {
+                    toggleUserView()
+                    setMobileMenuOpen(false)
+                  }}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-3 text-sm font-semibold text-white"
+                >
+                  <ArrowLeftRight className="w-4 h-4" />
+                  <span>
+                    {user.currentView === 'customer' 
+                      ? (language === 'en' ? 'Switch to Worker' : 'މުވައްޒަފު މޯޑަށް')
+                      : (language === 'en' ? 'Switch to Customer' : 'ކަސްޓަމަރު މޯޑަށް')
+                    }
+                  </span>
+                </button>
+              )}
 
               <div className="flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 ring-1 ring-gray-200">
                 <div className="text-sm font-semibold text-gray-800">{t('dashboard.notifications')}</div>
@@ -170,6 +221,13 @@ function AppContent() {
               setUser(next)
             }}
           />
+        ) : user.role === 'dual' ? (
+          // Dual role: render based on currentView
+          user.currentView === 'customer' ? (
+            <CustomerDashboard user={{ ...user, id: user.customerId!, role: 'customer' }} />
+          ) : (
+            <WorkerDashboard user={{ ...user, id: user.workerId!, role: 'worker' }} />
+          )
         ) : user.role === 'customer' ? (
           <CustomerDashboard user={user} />
         ) : (
@@ -178,7 +236,7 @@ function AppContent() {
       </main>
       
       <BottomNav
-        userRole={user.role}
+        userRole={user.role === 'dual' ? user.currentView! : user.role}
         onSignOut={() => {
           setUser(null)
           setImpersonator(null)

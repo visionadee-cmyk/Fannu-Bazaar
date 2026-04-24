@@ -101,6 +101,19 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
       const alreadyCustomer = db.customers.find((c) => c.active && c.email?.toLowerCase() === normalizedEmail)
       const alreadyWorker = db.workers.find((w) => w.active && w.email?.toLowerCase() === normalizedEmail)
 
+      // Dual role: user has both customer and worker accounts
+      if (alreadyCustomer && alreadyWorker) {
+        onLogin({ 
+          id: alreadyCustomer.id, 
+          role: 'dual', 
+          name: alreadyCustomer.name,
+          customerId: alreadyCustomer.id,
+          workerId: alreadyWorker.id,
+          currentView: 'customer'
+        })
+        return
+      }
+
       if (alreadyCustomer) {
         onLogin({ id: alreadyCustomer.id, role: 'customer', name: alreadyCustomer.name })
         return
@@ -265,6 +278,25 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
     }
 
     const customer = db.customers.find((c) => c.active && c.email?.toLowerCase() === normalizedEmail)
+    const worker = db.workers.find((w) => w.active && w.email?.toLowerCase() === normalizedEmail)
+    
+    // Dual role: user has both customer and worker accounts
+    if (customer && worker) {
+      if (customer.password && customer.password !== password) {
+        setLoginError('Invalid password')
+        return
+      }
+      onLogin({ 
+        id: customer.id, 
+        role: 'dual', 
+        name: customer.name,
+        customerId: customer.id,
+        workerId: worker.id,
+        currentView: 'customer'
+      })
+      return
+    }
+    
     if (customer) {
       if (customer.password && customer.password !== password) {
         setLoginError('Invalid password')
@@ -274,7 +306,6 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
       return
     }
 
-    const worker = db.workers.find((w) => w.active && w.email?.toLowerCase() === normalizedEmail)
     if (worker) {
       if (worker.password && worker.password !== password) {
         setLoginError('Invalid password')
