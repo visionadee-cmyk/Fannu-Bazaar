@@ -373,12 +373,29 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
       <div className="min-h-screen" style={{ background: `linear-gradient(135deg, ${THEME.bg} 0%, #ffffff 100%)` }}>
         {/* Hero Section */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12">
+          {/* Top Sign In / Sign Up Buttons */}
+          <div className="flex justify-end gap-3 mb-6">
+            <button
+              onClick={() => setActiveTab('login')}
+              className="px-4 py-2 rounded-lg font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all"
+            >
+              ސައިން އިން
+            </button>
+            <button
+              onClick={() => setActiveTab('signup')}
+              className="px-4 py-2 rounded-lg font-medium text-white transition-all"
+              style={{ background: THEME.primary }}
+            >
+              ރެޖިސްޓާ
+            </button>
+          </div>
+
           <div className="text-center mb-12">
             {/* Hero Image - Storyset illustration */}
             <div className="mb-8">
               <img 
                 src={publicImageUrl('Marketplace-amico.svg')}
-                alt="Fannu Bazaar - Connect with skilled workers"
+                alt="ފަންނު ބާޒާރު"
                 className="w-full max-w-md mx-auto h-auto"
                 loading="eager"
                 onError={(e) => {
@@ -392,12 +409,12 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
               />
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Find Skilled Workers.<br />
-              <span style={{ color: THEME.primary }}>Offer Your Services.</span>
+              ހުނަރެއްވާ މުވައްޒަފުން ހޯދާ<br />
+              <span style={{ color: THEME.primary }}>އަމަލުތައް ދައްކާ</span>
             </h1>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              The Maldives' premier marketplace connecting customers with verified skilled professionals. 
-              Get quality work done or grow your service business.
+              ދިވެހިރާއްޖޭގެ އެންމެ މަތީ މާރުކޭޓުގައި ފާސްކުރެވިފަ ހުނަރެއްވާ މުވައްޒަފުންނާ ގުޅުވާ. 
+              މަސްތައް ފުރިހަމަކުރު ނުވަތަ ތިބާ ހިދުމަތް ވިޔަފާރި ދަށުކޮށް.
             </p>
           </div>
 
@@ -407,22 +424,22 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: THEME.primaryLight }}>
                 <span className="text-2xl font-bold" style={{ color: THEME.primary }}>1</span>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Post or Find</h3>
-              <p className="text-sm text-gray-500">Customers post service needs. Workers browse and accept jobs matching their skills.</p>
+              <h3 className="font-semibold text-gray-900 mb-2">ހޯދު ނުވަތަ ގުޅުވުށޭ</h3>
+              <p className="text-sm text-gray-500">ކަސްޓަމަރުން ހިދުމަތްތަކުގެ ބޭނުންތައް ޕޯސްޓްކުރުން. މުވައްޒަފުން ބަލާ އަދި މިންނުވާ މަސްތައް ޤަބޫލުކުރުން.</p>
             </div>
             <div className="bg-white rounded-2xl p-6 shadow-md text-center">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#FEF3C7' }}>
                 <span className="text-2xl font-bold text-amber-600">2</span>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Connect & Quote</h3>
-              <p className="text-sm text-gray-500">Get matched, schedule inspections, receive quotes, and agree on terms.</p>
+              <h3 className="font-semibold text-gray-900 mb-2">ގުޅުވާ & ގޮތްވަކިވުން</h3>
+              <p className="text-sm text-gray-500">ގުޅުވާށޭ، އިންސްޕެކްޝަން ޝެޑިއިއުލްކުރާށޭ، ގޮތްވަކިވުން ދޫކުރާށޭ، އަދި ޝަރުތުތައް މަސްދަކުރާށޭ.</p>
             </div>
             <div className="bg-white rounded-2xl p-6 shadow-md text-center">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: '#D1FAE5' }}>
                 <span className="text-2xl font-bold text-green-600">3</span>
               </div>
-              <h3 className="font-semibold text-gray-900 mb-2">Complete & Review</h3>
-              <p className="text-sm text-gray-500">Work gets done, payment is processed, and both parties leave reviews.</p>
+              <h3 className="font-semibold text-gray-900 mb-2">ނިމުމްއާއި ރިވިއު</h3>
+              <p className="text-sm text-gray-gray-500">މަސް ފުރިހަމަކުރުން، ފައިސާ ކުރުން، އަދި ދެ ފަރުދަވެސް ރިވިއުދޫކުރުން.</p>
             </div>
           </div>
 
@@ -433,13 +450,13 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: THEME.primaryLight }}>
                   <Search className="w-6 h-6" style={{ color: THEME.primary }} />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">For Customers</h3>
+                <h3 className="text-lg font-semibold text-gray-900">ކަސްޓަމަރުންގެ މަންފަވެގެން</h3>
               </div>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> Find verified skilled workers quickly</li>
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> Compare quotes and reviews</li>
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> Track job progress in real-time</li>
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> Secure payment handling</li>
+                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> ފާސްކުރެވިފަ ހުނަރެއްވާ މުވައްޒަފުން އަވަސްކަމަށް ހޯދާ</li>
+                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> ގޮތްވަކިވުން އަދި ރިވިއުސް ބަލާ</li>
+                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> މަސްތަކުގެ ދަށްކަން ރީލް-ޓައިމްގައި ދަށްކުރާ</li>
+                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> އަމާން ފައިސާގެ ބަރުދަން</li>
               </ul>
             </div>
             <div className="bg-white rounded-2xl p-6 shadow-md">
@@ -447,13 +464,13 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
                 <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-50">
                   <Briefcase className="w-6 h-6 text-amber-500" />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900">For Workers</h3>
+                <h3 className="text-lg font-semibold text-gray-900">މުވައްޒަފުންގެ މަންފަވެގެން</h3>
               </div>
               <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> Access to more job opportunities</li>
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> Build your reputation with reviews</li>
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> Manage jobs and schedule easily</li>
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> Get paid securely and on time</li>
+                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> ގިނަ މަސްފުޅުތަކަށް ފުރުސަން ލިބޭ</li>
+                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> ރިވިއުސް ފެރުން މަގުފަހިކުރުން</li>
+                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> މަސްތައް އަދި ޝެޑިއިއުލް އަވަސްކޮށް މެނޭޖްކުރުން</li>
+                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> އަމާނުކަމަށް އަދި ވަގުތުން ފައިސާ ނަގާ</li>
               </ul>
             </div>
           </div>
@@ -465,13 +482,13 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
               className="px-8 py-4 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all text-lg"
               style={{ background: THEME.primary }}
             >
-              Get Started Free
+              މިހާރު ފަށާ (މަސާނަ)
             </button>
             <button
               onClick={() => setActiveTab('login')}
               className="px-8 py-4 rounded-xl font-semibold bg-white text-gray-700 border-2 border-gray-200 hover:bg-gray-50 transition-all text-lg"
             >
-              I already have an account
+              މަގަމް އައްކައުންޓެއް ހުރީ
             </button>
           </div>
         </div>
