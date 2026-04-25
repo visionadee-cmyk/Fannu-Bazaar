@@ -256,7 +256,7 @@ function OverviewTab({ stats, db }: { stats: any; db: any }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           title="Total Customers"
           value={stats.totalCustomers}
@@ -413,7 +413,7 @@ function StatisticsTab({ db }: { db: any }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           title="Total Visitors"
           value={visitorStats.totalVisitors}
@@ -453,7 +453,7 @@ function StatisticsTab({ db }: { db: any }) {
           <h3 className="text-lg font-semibold text-gray-900">Visitors by Role</h3>
         </div>
         <div className="p-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="bg-blue-50 rounded-xl p-4">
               <div className="text-2xl font-bold text-blue-600">{visitorStats.byRole.customer}</div>
               <div className="text-sm text-gray-600">Customers</div>
@@ -470,7 +470,7 @@ function StatisticsTab({ db }: { db: any }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
           <div className="p-6 border-b border-gray-100">
             <h3 className="text-lg font-semibold text-gray-900">Device Type</h3>
