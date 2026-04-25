@@ -8,6 +8,7 @@ import { useLanguage } from '../lib/LanguageContext'
 import AboutPage from './AboutPage'
 import ContactPage from './ContactPage'
 import DisclaimerPage from './DisclaimerPage'
+import QRCodeInstall from './QRCodeInstall'
 import { 
   Mail, Lock, ArrowLeft, UserCog, 
   Chrome, Search, Briefcase, Globe,
@@ -38,30 +39,10 @@ const publicAssetUrl = (filename: string) => {
 const imageFallbackUrl = (filename: string) => `https://fannu-bazaar.vercel.app/images/${filename}`
 const assetFallbackUrl = (filename: string) => `https://fannu-bazaar.vercel.app/${filename}`
 
-// Simple illustration component - now uses Storyset images
-const LoginIllustration = () => (
-  <div className="w-full h-40 mb-4">
-    <img 
-      src={publicImageUrl('Job%20hunt-bro.svg')}
-      alt="Login illustration" 
-      className="w-full h-full object-contain"
-      loading="eager"
-      onError={(e) => {
-        const img = e.currentTarget
-        if (img.dataset.fallbackApplied === '1') return
-        img.dataset.fallbackApplied = '1'
-        const fallback = imageFallbackUrl('Job%20hunt-bro.svg')
-        console.error('Failed to load image:', img.src, 'Falling back to:', fallback)
-        img.src = fallback
-      }}
-    />
-  </div>
-)
-
 const WelcomeIllustration = () => (
-  <div className="w-full h-32 mb-4">
+  <div className="w-full h-64 mb-8">
     <img 
-      src={publicImageUrl('New%20team%20members-amico.svg')}
+      src={publicImageUrl('Marketplace-amico.svg')}
       alt="Welcome illustration" 
       className="w-full h-full object-contain"
       loading="eager"
@@ -69,7 +50,7 @@ const WelcomeIllustration = () => (
         const img = e.currentTarget
         if (img.dataset.fallbackApplied === '1') return
         img.dataset.fallbackApplied = '1'
-        const fallback = imageFallbackUrl('New%20team%20members-amico.svg')
+        const fallback = imageFallbackUrl('Marketplace-amico.svg')
         console.error('Failed to load image:', img.src, 'Falling back to:', fallback)
         img.src = fallback
       }}
@@ -606,6 +587,11 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
               </li>
             </ul>
           </div>
+        </div>
+
+        {/* QR Code Install */}
+        <div className="flex justify-center mb-12">
+          <QRCodeInstall />
         </div>
 
         {/* CTA Buttons */}
