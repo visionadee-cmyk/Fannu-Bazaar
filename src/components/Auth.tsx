@@ -436,7 +436,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
               <img 
                 src={publicAssetUrl('logo.png')}
                 alt="Fannu Bazaar"
-                className="w-12 h-12 object-contain"
+                className="w-16 h-16 object-contain"
                 loading="eager"
                 onError={(e) => {
                   const img = e.currentTarget
@@ -673,11 +673,11 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
           {/* Main Card */}
           <div className="bg-white rounded-3xl shadow-lg p-6">
             {/* Logo */}
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-6">
               <img 
                 src={publicAssetUrl('logo.png')}
                 alt="Fannu Bazaar"
-                className="w-16 h-16 object-contain"
+                className="w-24 h-24 object-contain"
                 loading="eager"
                 onError={(e) => {
                   const img = e.currentTarget
@@ -687,9 +687,6 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
                 }}
               />
             </div>
-
-            {/* Illustration */}
-            <LoginIllustration />
             
             {/* Title */}
             <h2 className="text-xl font-bold text-gray-800 text-center mb-1">{t('auth.gettingStarted')}</h2>
