@@ -79,12 +79,12 @@ const tabMapping: Record<string, 'overview' | 'statistics' | 'customers' | 'work
 };
 
 const reverseTabMapping: Record<'overview' | 'statistics' | 'customers' | 'workers' | 'works' | 'settings', AdminTab> = {
-  overview: 'dashboard',
-  statistics: 'statistics',
-  customers: 'users',
-  workers: 'workers',
-  works: 'jobs',
-  settings: 'profile',
+  overview: 'dashboard' as AdminTab,
+  statistics: 'statistics' as AdminTab,
+  customers: 'users' as AdminTab,
+  workers: 'workers' as AdminTab,
+  works: 'jobs' as AdminTab,
+  settings: 'profile' as AdminTab,
 };
 
 export default function AdminDashboard({
