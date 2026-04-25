@@ -69,7 +69,7 @@ interface AdminDashboardProps {
 }
 
 // Map external tab names to internal tab names
-const tabMapping: Record<AdminTab, 'overview' | 'statistics' | 'customers' | 'workers' | 'works' | 'settings'> = {
+const tabMapping: Record<string, 'overview' | 'statistics' | 'customers' | 'workers' | 'works' | 'settings'> = {
   dashboard: 'overview',
   statistics: 'statistics',
   users: 'customers',
