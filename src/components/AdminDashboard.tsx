@@ -471,26 +471,32 @@ function StatisticsTab({ db }: { db: any }) {
           <h3 className="text-lg font-semibold text-gray-900">Recent Visitors</h3>
         </div>
         <div className="p-6">
-          <div className="space-y-3">
-            {db.visitors.slice(-5).reverse().map((visitor: any) => (
-              <div key={visitor.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-gray-900 truncate">
-                    {visitor.isRegistered ? 'Registered User' : 'Anonymous'}
+          {db.visitors.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No visitors tracked yet. Visit the app to start tracking visitors.
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {db.visitors.slice(-5).reverse().map((visitor: any) => (
+                <div key={visitor.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-gray-900 truncate">
+                      {visitor.isRegistered ? 'Registered User' : 'Anonymous'}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(visitor.visitedAt).toLocaleString()}
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500">
-                    {new Date(visitor.visitedAt).toLocaleString()}
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-gray-900">{visitor.pageViews} views</div>
+                    <div className="text-xs text-gray-500">
+                      {visitor.userRole || 'Guest'}
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-gray-900">{visitor.pageViews} views</div>
-                  <div className="text-xs text-gray-500">
-                    {visitor.userRole || 'Guest'}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
