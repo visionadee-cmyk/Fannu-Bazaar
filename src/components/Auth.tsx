@@ -431,7 +431,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
               <img 
                 src={publicAssetUrl('logo.png')}
                 alt="Fannu Bazaar"
-                className="w-16 h-16 object-contain"
+                className="w-32 h-32 object-contain mix-blend-multiply"
                 loading="eager"
                 onError={(e) => {
                   const img = e.currentTarget
@@ -972,14 +972,23 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
           </button>
 
           <div className="bg-white rounded-3xl shadow-lg p-6">
+            {/* Logo */}
+            <div className="flex justify-center mb-6">
+              <img 
+                src={publicAssetUrl('logo.png')}
+                alt="Fannu Bazaar"
+                className="w-40 h-40 object-contain mix-blend-multiply"
+                loading="eager"
+                onError={(e) => {
+                  const img = e.currentTarget
+                  if (img.dataset.fallbackApplied === '1') return
+                  img.dataset.fallbackApplied = '1'
+                  img.src = assetFallbackUrl('logo.png')
+                }}
+              />
+            </div>
+            
             <div className="text-center mb-6">
-              <div className="mx-auto w-14 h-14 rounded-2xl flex items-center justify-center mb-3" style={{ background: role === 'customer' ? THEME.primaryLight : '#FEF3C7' }}>
-                {role === 'customer' ? (
-                  <Search className="w-7 h-7" style={{ color: THEME.primary }} />
-                ) : (
-                  <Briefcase className="w-7 h-7 text-amber-500" />
-                )}
-              </div>
               <h2 className="text-xl font-bold text-gray-800">{t('auth.createAccount')}</h2>
               <p className="text-gray-500 text-sm">{t('auth.signingUpAs').replace('{role}', role === 'customer' ? t('auth.role.customer') : t('auth.role.worker'))}</p>
             </div>
