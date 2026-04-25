@@ -33,14 +33,20 @@ export default function WorkerProfileModal({ workerId, onClose }: { workerId: st
     `https://ui-avatars.com/api/?name=${encodeURIComponent(businessName)}&background=10b981&color=fff&size=200&bold=true&font-size=0.4`
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-4 overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4 py-4 overflow-y-auto"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-3xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header Banner */}
         <div className="relative h-48 bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 rounded-t-3xl overflow-hidden">
           <div className="absolute inset-0 bg-black/10"></div>
           <button 
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors backdrop-blur-sm"
+            className="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors backdrop-blur-sm z-50"
           >
             <X className="w-5 h-5 text-white" />
           </button>
