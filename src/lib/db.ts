@@ -152,6 +152,142 @@ export function deleteWorker(params: { workerId: string }) {
   save(db)
 }
 
+export async function importWorkersFromJSON(workersData: any[]) {
+  const db = load()
+  let added = 0
+  let updated = 0
+
+  // Category mapping from JSON to app categories
+  const categoryMap: Record<string, string> = {
+    'AC Service': 'AC',
+    'AC': 'AC',
+    'Electrical': 'Electrical',
+    'Plumbing': 'Plumbing',
+    'Cleaning': 'Cleaning',
+    'Appliance': 'Appliance',
+    'Pest Control': 'PestControl',
+    'Masonry': 'Masonry',
+    'Moving': 'Moving',
+    'Gardening': 'Gardening',
+    'Painting': 'Painting',
+    'Waterproofing': 'Waterproofing',
+    'Interior Design': 'InteriorDesign',
+    'Renovation': 'Renovation',
+    'Carpentry': 'Carpentry',
+    'Locksmith': 'Locksmith',
+    'Security Systems': 'SecuritySystems',
+    'Solar': 'Solar',
+    'Beauty': 'Beauty',
+    'Barber': 'Barber',
+    'Spa': 'Spa',
+    'Massage': 'Massage',
+    'Photography': 'Photography',
+    'Event Planning': 'EventPlanning',
+    'Catering': 'Catering',
+    'Bartending': 'Bartending',
+    'Laundry': 'Laundry',
+    'Child Care': 'ChildCare',
+    'Elder Care': 'ElderCare',
+    'Baking': 'Baking',
+    'Food Stall': 'FoodStall',
+    'Fresh Produce': 'FreshProduce',
+    'Delivery': 'Delivery',
+    'Driving': 'Driving',
+    'Bike Repair': 'BikeRepair',
+    'Auto Repair': 'AutoRepair',
+    'Tutoring': 'Tutoring',
+    'Equipment Rental': 'EquipmentRental',
+    'Real Estate': 'RealEstate',
+  }
+
+  for (const data of workersData) {
+    const existing = db.workers.find((w) => w.id === data.id)
+    const mappedCategory = data.category ? (categoryMap[data.category] || data.category) : null
+    const worker: WorkerProfile = {
+      id: data.id,
+      name: data.businessName || data.name || 'Unnamed Worker',
+      email: data.contact?.email || data.email,
+      phone: data.contact?.phone || data.phone,
+      whatsapp: data.contact?.whatsapp || data.whatsapp,
+      viber: data.contact?.viber,
+      categories: mappedCategory ? [mappedCategory] : data.categories || ['Other'],
+      skills: data.subCategories || data.skills || [],
+      about: data.description || data.about,
+      promoPosterUrl: data.bannerImage || data.promoPosterUrl,
+      ratingAvg: data.rating?.average || 0,
+      ratingCount: data.rating?.totalReviews || 0,
+      jobsDone: 0,
+      active: true,
+      // Enhanced profile fields
+      businessName: data.businessName,
+      subCategories: data.subCategories,
+      tagline: data.tagline,
+      description: data.description,
+      services: data.services,
+      promotionalOffer: data.promotionalOffer,
+      brandsSupported: data.brandsSupported,
+      warranty: data.warranty,
+      contactInfo: data.contact,
+      locationInfo: data.location,
+      availability: data.availability,
+      languages: data.languages,
+      isVerified: data.isVerified ?? false,
+      profileImage: data.profileImage,
+      bannerImage: data.bannerImage,
+      galleryImages: data.galleryImages,
+      updatedAt: data.updatedAt,
+    }
+
+    if (existing) {
+      const idx = db.workers.indexOf(existing)
+      db.workers[idx] = worker
+      updated++
+    } else {
+      db.workers.push(worker)
+      added++
+    }
+  }
+
+  cache = db
+  for (const l of listeners) l()
+  await persist(db)
+  await refreshDB()
+  return { added, updated, total: db.workers.length }
+}
+
+export async function clearAllData() {
+  const db = load()
+  const workerCount = db.workers.length
+  const customerCount = db.customers.length
+  const requestCount = db.requests.length
+  const reviewCount = db.reviews.length
+
+  db.workers = []
+  db.customers = []
+  db.requests = []
+  db.reviews = []
+  db.notifications = []
+  
+  save(db)
+  await persist(db)
+  await refreshDB()
+  return { workerCount, customerCount, requestCount, reviewCount }
+}
+
+export function removeWorkersByNames(names: string[]) {
+  const db = load()
+  const namesLower = names.map(n => n.toLowerCase())
+  const removed = db.workers.filter((w) => namesLower.includes(w.name.toLowerCase()))
+  db.workers = db.workers.filter((w) => !namesLower.includes(w.name.toLowerCase()))
+  save(db)
+  return { removedCount: removed.length, removedWorkers: removed.map((w) => w.name) }
+}
+
+export function getAllWorkerNames() {
+  const db = load()
+  return db.workers.map(w => w.name)
+}
+
 function load(): DB {
   return cloneDB(cache)
 }
@@ -235,74 +371,11 @@ export async function seedIfEmpty() {
     },
   ]
 
-  const customers: CustomerProfile[] = [
-    {
-      id: 'c_1',
-      name: 'Aisha',
-      email: 'customer@demo.com',
-      password: 'demo123',
-      phone: '+91 90000 00001',
-      active: true,
-    },
-    {
-      id: 'c_2',
-      name: 'Rahul',
-      email: 'customer@demo.com',
-      password: 'demo123',
-      phone: '+91 90000 00002',
-      active: true,
-    },
-  ]
+  const customers: CustomerProfile[] = []
 
-  const workers: WorkerProfile[] = [
-    {
-      id: 'w_1',
-      name: 'Suresh',
-      email: 'worker@demo.com',
-      password: 'demo123',
-      phone: '+91 80000 00001',
-      whatsapp: '+91 80000 00001',
-      categories: ['AC', 'Electrical'],
-      skills: ['Split AC service', 'Wiring', 'Fan repair', 'Switchboard'],
-      about: '10+ years experience. Fast same-day service in city limits.',
-      promoPosterUrl: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1200&q=80&auto=format&fit=crop',
-      ratingAvg: 4.6,
-      ratingCount: 92,
-      jobsDone: 92,
-      active: true,
-    },
-    {
-      id: 'w_2',
-      name: 'Meena',
-      email: 'worker@demo.com',
-      password: 'demo123',
-      phone: '+91 80000 00002',
-      viber: '+91 80000 00002',
-      categories: ['Plumbing', 'Carpentry'],
-      skills: ['Leak fixing', 'Tap replacement', 'Door hinges', 'Furniture repair'],
-      about: 'Trusted technician. Transparent pricing and neat work.',
-      promoPosterUrl: 'https://images.unsplash.com/photo-1581092919535-7146c7d31c28?w=1200&q=80&auto=format&fit=crop',
-      ratingAvg: 4.8,
-      ratingCount: 120,
-      jobsDone: 120,
-      active: true,
-    },
-  ]
+  const workers: WorkerProfile[] = []
 
-  const requests: ServiceRequest[] = [
-    {
-      id: 'r_1',
-      createdAt: nowIso(),
-      status: 'open',
-      category: 'Plumbing',
-      title: 'Bathroom tap leaking',
-      description: 'Continuous leak from tap. Need repair or replacement.',
-      budget: 800,
-      urgency: 'medium',
-      location: 'Chennai',
-      customerId: 'c_1',
-    },
-  ]
+  const requests: ServiceRequest[] = []
 
   save({ admins, customers, workers, requests, reviews: [], notifications: [], visitors: [] })
 }
@@ -1283,8 +1356,63 @@ export function checkUpcomingReminders(userId: string, userRole: 'customer' | 'w
   return reminders
 }
 
+// User agent parser for device/browser/OS detection
+function parseUserAgent(userAgent?: string): {
+  browser?: string
+  os?: string
+  device?: string
+  deviceType?: 'desktop' | 'mobile' | 'tablet'
+} {
+  if (!userAgent) return {}
+
+  const ua = userAgent.toLowerCase()
+  let browser: string | undefined
+  let os: string | undefined
+  let device: string | undefined
+  let deviceType: 'desktop' | 'mobile' | 'tablet' = 'desktop'
+
+  // Browser detection
+  if (ua.includes('chrome') && !ua.includes('edg')) browser = 'Chrome'
+  else if (ua.includes('safari') && !ua.includes('chrome')) browser = 'Safari'
+  else if (ua.includes('firefox')) browser = 'Firefox'
+  else if (ua.includes('edg')) browser = 'Edge'
+  else if (ua.includes('opera') || ua.includes('opr')) browser = 'Opera'
+  else browser = 'Other'
+
+  // OS detection
+  if (ua.includes('windows')) os = 'Windows'
+  else if (ua.includes('mac os') || ua.includes('macos')) os = 'macOS'
+  else if (ua.includes('android')) os = 'Android'
+  else if (ua.includes('iphone') || ua.includes('ipad')) os = 'iOS'
+  else if (ua.includes('linux')) os = 'Linux'
+  else os = 'Other'
+
+  // Device detection
+  if (ua.includes('iphone')) {
+    device = 'iPhone'
+    deviceType = 'mobile'
+  } else if (ua.includes('ipad')) {
+    device = 'iPad'
+    deviceType = 'tablet'
+  } else if (ua.includes('android')) {
+    deviceType = 'mobile'
+    device = 'Android'
+  } else if (ua.includes('mobile')) {
+    deviceType = 'mobile'
+    device = 'Mobile'
+  } else if (ua.includes('tablet')) {
+    deviceType = 'tablet'
+    device = 'Tablet'
+  } else {
+    device = 'Desktop'
+    deviceType = 'desktop'
+  }
+
+  return { browser, os, device, deviceType }
+}
+
 // Visitor tracking functions
-export function trackVisitor(params: {
+export async function trackVisitor(params: {
   sessionId: string
   ip?: string
   userAgent?: string
@@ -1292,9 +1420,11 @@ export function trackVisitor(params: {
   isRegistered?: boolean
   userId?: string
   userRole?: 'customer' | 'worker' | 'admin'
-}): Visitor {
+}): Promise<Visitor> {
+  await refreshDB()
   const db = load()
   const now = nowIso()
+  const deviceInfo = parseUserAgent(params.userAgent)
   
   // Check if visitor already exists for this session
   let visitor = db.visitors.find((v) => v.sessionId === params.sessionId)
@@ -1313,6 +1443,7 @@ export function trackVisitor(params: {
       sessionId: params.sessionId,
       ip: params.ip,
       userAgent: params.userAgent,
+      ...deviceInfo,
       referrer: params.referrer,
       visitedAt: now,
       lastSeenAt: now,
@@ -1349,6 +1480,29 @@ export function getVisitorStats() {
     admin: db.visitors.filter((v) => v.userRole === 'admin').length,
   }
   
+  const byDeviceType: Record<string, number> = {
+    desktop: db.visitors.filter((v) => v.deviceType === 'desktop').length,
+    mobile: db.visitors.filter((v) => v.deviceType === 'mobile').length,
+    tablet: db.visitors.filter((v) => v.deviceType === 'tablet').length,
+  }
+  
+  const byBrowser: Record<string, number> = {
+    Chrome: db.visitors.filter((v) => v.browser === 'Chrome').length,
+    Safari: db.visitors.filter((v) => v.browser === 'Safari').length,
+    Firefox: db.visitors.filter((v) => v.browser === 'Firefox').length,
+    Edge: db.visitors.filter((v) => v.browser === 'Edge').length,
+    Other: db.visitors.filter((v) => !v.browser || v.browser === 'Other').length,
+  }
+  
+  const byOS: Record<string, number> = {
+    Windows: db.visitors.filter((v) => v.os === 'Windows').length,
+    macOS: db.visitors.filter((v) => v.os === 'macOS').length,
+    Android: db.visitors.filter((v) => v.os === 'Android').length,
+    iOS: db.visitors.filter((v) => v.os === 'iOS').length,
+    Linux: db.visitors.filter((v) => v.os === 'Linux').length,
+    Other: db.visitors.filter((v) => !v.os || v.os === 'Other').length,
+  }
+  
   return {
     totalVisitors,
     registeredVisitors,
@@ -1357,5 +1511,8 @@ export function getVisitorStats() {
     lastWeekVisitors,
     totalPageViews,
     byRole,
+    byDeviceType,
+    byBrowser,
+    byOS,
   }
 }

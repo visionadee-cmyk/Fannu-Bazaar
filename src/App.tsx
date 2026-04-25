@@ -9,7 +9,7 @@ import NotificationBell from './components/NotificationBell'
 import Footer from './components/Footer'
 import LanguageToggle from './components/LanguageToggle'
 import { LanguageProvider, useLanguage } from './lib/LanguageContext'
-import { seedIfEmpty, getDB } from './lib/db'
+import { getDB } from './lib/db'
 import type { AdminProfile, CustomerProfile, WorkerProfile, SessionUser } from './lib/types'
 import { Menu, X, ArrowLeftRight } from 'lucide-react'
 import { onAuthStateChanged } from 'firebase/auth'
@@ -19,7 +19,7 @@ function AppContent() {
   const { t, fontClass, language } = useLanguage()
   
   useEffect(() => {
-    void seedIfEmpty()
+    // void seedIfEmpty() // Disabled to prevent interference with data persistence
   }, [])
 
   const [user, setUser] = useState<SessionUser | null>(null)

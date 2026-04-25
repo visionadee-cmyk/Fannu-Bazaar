@@ -121,6 +121,49 @@ export type CustomerProfile = {
   active: boolean
 }
 
+export type WorkerServiceItem = {
+  name: string
+  price: number
+  originalPrice?: number | null
+  currency: string
+  unit: string
+  category?: string
+}
+
+export type WorkerWarranty = {
+  available: boolean
+  durationDays: number
+  description: string
+}
+
+export type WorkerContactInfo = {
+  phone: string
+  secondaryPhone?: string
+  email?: string
+  whatsapp?: string
+  viber?: string
+}
+
+export type WorkerLocationInfo = {
+  island: string
+  atoll: string
+  address?: string
+  serviceArea: string
+}
+
+export type WorkerAvailability = {
+  days: string[]
+  hours: string
+  emergencyService: boolean
+}
+
+export type WorkerPromotionalOffer = {
+  active: boolean
+  title: string
+  description: string
+  validUntil: string
+}
+
 export type WorkerProfile = {
   id: string
   name: string
@@ -137,6 +180,24 @@ export type WorkerProfile = {
   ratingCount: number
   jobsDone: number
   active: boolean
+  // New fields for enhanced worker profiles
+  businessName?: string
+  subCategories?: string[]
+  tagline?: string
+  description?: string
+  services?: WorkerServiceItem[]
+  promotionalOffer?: WorkerPromotionalOffer
+  brandsSupported?: string[]
+  warranty?: WorkerWarranty
+  contactInfo?: WorkerContactInfo
+  locationInfo?: WorkerLocationInfo
+  availability?: WorkerAvailability
+  languages?: string[]
+  isVerified?: boolean
+  profileImage?: string
+  bannerImage?: string
+  galleryImages?: string[]
+  updatedAt?: string
 }
 
 export type Review = {
@@ -154,6 +215,10 @@ export type Visitor = {
   sessionId: string
   ip?: string
   userAgent?: string
+  browser?: string
+  os?: string
+  device?: string
+  deviceType?: 'desktop' | 'mobile' | 'tablet'
   referrer?: string
   visitedAt: string
   lastSeenAt: string

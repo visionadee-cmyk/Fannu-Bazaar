@@ -3,14 +3,16 @@ import { motion } from 'framer-motion'
 import {
   createCustomer,
   createWorker,
-  deleteCustomer,
   deleteWorker,
+  deleteCustomer,
   deleteAllRequests,
-  setCustomerActive,
   setWorkerActive,
-  updateCustomer,
+  setCustomerActive,
   updateWorker,
+  updateCustomer,
   getVisitorStats,
+  importWorkersFromJSON,
+  clearAllData,
 } from '../lib/db'
 import { useDBSnapshot } from '../lib/hooks'
 import WorkerProfileModal from './WorkerProfileModal'
@@ -71,6 +73,7 @@ const tabMapping: Record<AdminTab, 'overview' | 'statistics' | 'customers' | 'wo
   dashboard: 'overview',
   statistics: 'statistics',
   users: 'customers',
+  workers: 'workers',
   jobs: 'works',
   profile: 'settings',
 };
@@ -79,7 +82,7 @@ const reverseTabMapping: Record<'overview' | 'statistics' | 'customers' | 'worke
   overview: 'dashboard',
   statistics: 'statistics',
   customers: 'users',
-  workers: 'users',
+  workers: 'workers',
   works: 'jobs',
   settings: 'profile',
 };
@@ -143,17 +146,17 @@ export default function AdminDashboard({
         style={{ background: 'rgba(255,255,255,0.95)' }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: THEME.primary }}>
-                <User className="w-6 h-6 text-white" />
+          <div className="flex items-center justify-between py-3 sm:py-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: THEME.primary }}>
+                <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Admin Dashboard</h1>
-                <p className="text-sm text-gray-500">Welcome back, {user.name}</p>
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">Admin Dashboard</h1>
+                <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Welcome back, {user.name}</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="hidden md:block">
                 <Illustration
                   filename="Logistics-cuate.svg"
@@ -162,11 +165,11 @@ export default function AdminDashboard({
                   loading="eager"
                 />
               </div>
-              <span className="hidden sm:inline-block px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-green-100 text-green-700">
-                {stats.activeWorkers} Active Workers
+              <span className="hidden sm:inline-block px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-green-100 text-green-700">
+                {stats.activeWorkers} Active
               </span>
-              <span className="hidden sm:inline-block px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-blue-100 text-blue-700">
-                {stats.pendingRequests} Pending Jobs
+              <span className="hidden sm:inline-block px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium bg-blue-100 text-blue-700">
+                {stats.pendingRequests} Pending
               </span>
               <NotificationBell user={user} />
             </div>
@@ -180,17 +183,18 @@ export default function AdminDashboard({
                 <button
                   key={t.id}
                   onClick={() => setTab(t.id as any)}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all whitespace-nowrap ${
+                  className={`snap-start flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-medium transition-all whitespace-nowrap text-xs sm:text-sm ${
                     isActive
                       ? 'text-white shadow-lg shadow-green-500/25'
                       : 'text-gray-600 hover:bg-gray-100'
                   }`}
                   style={isActive ? { background: THEME.primary } : {}}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{t.label}</span>
+                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">{t.label}</span>
+                  <span className="sm:hidden">{t.label.split(' ')[0]}</span>
                   {t.count !== undefined && (
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${isActive ? 'bg-white/20' : 'bg-gray-200 text-gray-600'}`}>
+                    <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-xs ${isActive ? 'bg-white/20' : 'bg-gray-200 text-gray-600'}`}>
                       {t.count}
                     </span>
                   )}
@@ -466,6 +470,88 @@ function StatisticsTab({ db }: { db: any }) {
         </div>
       </div>
 
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900">Device Type</h3>
+          </div>
+          <div className="p-6 space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Desktop</span>
+              <span className="font-semibold text-gray-900">{visitorStats.byDeviceType.desktop}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Mobile</span>
+              <span className="font-semibold text-gray-900">{visitorStats.byDeviceType.mobile}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Tablet</span>
+              <span className="font-semibold text-gray-900">{visitorStats.byDeviceType.tablet}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900">Browser</h3>
+          </div>
+          <div className="p-6 space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Chrome</span>
+              <span className="font-semibold text-gray-900">{visitorStats.byBrowser.Chrome}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Safari</span>
+              <span className="font-semibold text-gray-900">{visitorStats.byBrowser.Safari}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Firefox</span>
+              <span className="font-semibold text-gray-900">{visitorStats.byBrowser.Firefox}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Edge</span>
+              <span className="font-semibold text-gray-900">{visitorStats.byBrowser.Edge}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Other</span>
+              <span className="font-semibold text-gray-900">{visitorStats.byBrowser.Other}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100">
+            <h3 className="text-lg font-semibold text-gray-900">Operating System</h3>
+          </div>
+          <div className="p-6 space-y-3">
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Windows</span>
+              <span className="font-semibold text-gray-900">{visitorStats.byOS.Windows}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">macOS</span>
+              <span className="font-semibold text-gray-900">{visitorStats.byOS.macOS}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Android</span>
+              <span className="font-semibold text-gray-900">{visitorStats.byOS.Android}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">iOS</span>
+              <span className="font-semibold text-gray-900">{visitorStats.byOS.iOS}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Linux</span>
+              <span className="font-semibold text-gray-900">{visitorStats.byOS.Linux}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-600">Other</span>
+              <span className="font-semibold text-gray-900">{visitorStats.byOS.Other}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100">
           <h3 className="text-lg font-semibold text-gray-900">Recent Visitors</h3>
@@ -477,13 +563,16 @@ function StatisticsTab({ db }: { db: any }) {
             </div>
           ) : (
             <div className="space-y-3">
-              {db.visitors.slice(-5).reverse().map((visitor: any) => (
+              {db.visitors.slice(-10).reverse().map((visitor: any) => (
                 <div key={visitor.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div className="flex-1 min-w-0">
                     <div className="text-sm font-medium text-gray-900 truncate">
                       {visitor.isRegistered ? 'Registered User' : 'Anonymous'}
                     </div>
                     <div className="text-xs text-gray-500">
+                      {visitor.device || 'Unknown'} • {visitor.browser || 'Unknown'} • {visitor.os || 'Unknown'}
+                    </div>
+                    <div className="text-xs text-gray-400">
                       {new Date(visitor.visitedAt).toLocaleString()}
                     </div>
                   </div>
@@ -774,6 +863,8 @@ function WorkersTab({
   const [phone, setPhone] = useState('')
   const [query, setQuery] = useState('')
   const [showCreate, setShowCreate] = useState(false)
+  const [importStatus, setImportStatus] = useState<string | null>(null)
+  const [clearStatus, setClearStatus] = useState<string | null>(null)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -788,6 +879,27 @@ function WorkersTab({
     })
   }, [db.workers, query])
 
+  const handleImportWorkers = async () => {
+    try {
+      const response = await fetch('/workers-database.json')
+      const data = await response.json()
+      const result = await importWorkersFromJSON(data.workers)
+      setImportStatus(`Imported ${result.added} new workers, updated ${result.updated}. Total: ${result.total}`)
+      setTimeout(() => setImportStatus(null), 5000)
+    } catch (error) {
+      setImportStatus('Error importing workers. Make sure the JSON file exists.')
+      setTimeout(() => setImportStatus(null), 5000)
+    }
+  }
+
+  const handleClearAllData = async () => {
+    if (confirm('Are you sure you want to clear ALL workers, customers, and requests? This cannot be undone.')) {
+      const result = await clearAllData()
+      setClearStatus(`Cleared ${result.workerCount} workers, ${result.customerCount} customers, ${result.requestCount} requests`)
+      setTimeout(() => setClearStatus(null), 5000)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
@@ -796,7 +908,7 @@ function WorkersTab({
             <h2 className="text-xl font-bold text-gray-900">Workers</h2>
             <p className="text-sm text-gray-500 mt-1">Manage your worker network</p>
           </div>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
@@ -807,6 +919,20 @@ function WorkersTab({
               />
             </div>
             <button
+              onClick={handleClearAllData}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-white shadow-lg hover:shadow-xl transition-all bg-red-600 hover:bg-red-700"
+            >
+              <Trash2 className="w-4 h-4" />
+              Clear All
+            </button>
+            <button
+              onClick={handleImportWorkers}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-white shadow-lg hover:shadow-xl transition-all bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4" />
+              Import JSON
+            </button>
+            <button
               onClick={() => setShowCreate(!showCreate)}
               className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-white shadow-lg hover:shadow-xl transition-all"
               style={{ background: THEME.primary }}
@@ -816,6 +942,16 @@ function WorkersTab({
             </button>
           </div>
         </div>
+        {importStatus && (
+          <div className="mt-4 px-4 py-2 rounded-lg bg-green-50 border border-green-200 text-sm text-green-800">
+            {importStatus}
+          </div>
+        )}
+        {clearStatus && (
+          <div className="mt-4 px-4 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-800">
+            {clearStatus}
+          </div>
+        )}
       </div>
 
       {showCreate && (
@@ -910,13 +1046,13 @@ function WorkerCard({
   const [isEditing, setIsEditing] = useState(false)
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
+    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 hover:shadow-xl transition-shadow">
       <div className="flex flex-col md:flex-row md:items-center gap-4">
-        <div className="flex items-center gap-4 flex-1">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: worker.active ? THEME.primaryLight : THEME.gray100 }}>
-            <Wrench className="w-6 h-6" style={{ color: worker.active ? THEME.primary : THEME.gray400 }} />
+        <div className="flex items-center gap-3 sm:gap-4 flex-1">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: worker.active ? THEME.primaryLight : THEME.gray100 }}>
+            <Wrench className="w-5 h-5 sm:w-6 sm:h-6" style={{ color: worker.active ? THEME.primary : THEME.gray400 }} />
           </div>
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             {isEditing ? (
               <div className="grid gap-3 md:grid-cols-3">
                 <input
@@ -940,13 +1076,13 @@ function WorkerCard({
               </div>
             ) : (
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="font-semibold text-gray-900">{worker.name}</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{worker.name}</h3>
                   <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${worker.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                     {worker.active ? 'Active' : 'Inactive'}
                   </span>
                 </div>
-                <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-500 mt-1 flex-wrap">
                   <span className="flex items-center gap-1">
                     <Star className="w-3 h-3 text-amber-400 fill-current" />
                     {worker.ratingAvg.toFixed(1)} ({worker.ratingCount} reviews)
@@ -954,14 +1090,14 @@ function WorkerCard({
                   <span>•</span>
                   <span>{worker.jobsDone} jobs</span>
                   <span>•</span>
-                  <span>{worker.email || 'No email'}</span>
+                  <span className="truncate">{worker.email || 'No email'}</span>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {isEditing ? (
             <>
               <button
@@ -990,14 +1126,14 @@ function WorkerCard({
             <>
               <button
                 onClick={() => onShowProfile(worker.id)}
-                className="px-4 py-2 rounded-xl font-medium text-sm border border-gray-200 hover:bg-gray-50 transition-colors"
+                className="px-3 py-2 sm:px-4 sm:py-2 rounded-xl font-medium text-xs sm:text-sm border border-gray-200 hover:bg-gray-50 transition-colors"
               >
                 View Profile
               </button>
               {canImpersonate && onImpersonate && (
                 <button
                   onClick={() => onImpersonate({ id: worker.id, role: 'worker', name: worker.name })}
-                  className="px-4 py-2 rounded-xl font-medium text-sm border border-gray-200 hover:bg-gray-50 transition-colors"
+                  className="px-3 py-2 sm:px-4 sm:py-2 rounded-xl font-medium text-xs sm:text-sm border border-gray-200 hover:bg-gray-50 transition-colors"
                 >
                   View as
                 </button>
@@ -1005,10 +1141,10 @@ function WorkerCard({
               {!worker.active && (
                 <button
                   onClick={() => setWorkerActive({ workerId: worker.id, active: true })}
-                  className="px-3 py-2 rounded-xl font-medium text-sm text-white shadow-md hover:shadow-lg transition-all"
+                  className="px-3 py-2 rounded-xl font-medium text-xs sm:text-sm text-white shadow-md hover:shadow-lg transition-all"
                   style={{ background: THEME.primary }}
                 >
-                  <Check className="w-4 h-4 inline mr-1" />
+                  <Check className="w-3 h-3 sm:w-4 sm:h-4 inline mr-1" />
                   Approve
                 </button>
               )}

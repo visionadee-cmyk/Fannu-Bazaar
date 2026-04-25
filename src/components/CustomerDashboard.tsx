@@ -116,7 +116,7 @@ export default function CustomerDashboard({ user, activeTab: externalTab, onTabC
   const workers = useMemo(() => {
     const q = workerQuery.trim().toLowerCase()
     const sub = (workerSubcategory ?? '').trim().toLowerCase()
-    return db.workers
+    const filtered = db.workers
       .filter((w) => (workerCategory === 'All' ? true : w.categories.includes(workerCategory)))
       .filter((w) => (!sub ? true : w.skills.some((s) => s.toLowerCase().includes(sub)) || (w.about ?? '').toLowerCase().includes(sub)))
       .filter(
@@ -128,6 +128,7 @@ export default function CustomerDashboard({ user, activeTab: externalTab, onTabC
           (w.about ?? '').toLowerCase().includes(q)
       )
       .sort((a, b) => (b.ratingAvg ?? 0) - (a.ratingAvg ?? 0))
+    return filtered
   }, [db.workers, workerCategory, workerQuery, workerSubcategory])
 
   const tabs = [
@@ -179,17 +180,17 @@ export default function CustomerDashboard({ user, activeTab: externalTab, onTabC
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="sticky top-0 z-10 backdrop-blur-xl border-b border-gray-200/50" style={{ background: 'rgba(255,255,255,0.95)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between py-4">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: THEME.primary }}>
-                <User className="w-6 h-6 text-white" />
+          <div className="flex items-center justify-between py-3 sm:py-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: THEME.primary }}>
+                <User className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Welcome back, {user.name}</h1>
-                <p className="text-sm text-gray-500">Customer Dashboard</p>
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">Welcome back, {user.name}</h1>
+                <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Customer Dashboard</p>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <div className="hidden md:block">
                 <Illustration
                   filename="Business%20growth-amico.svg"
@@ -201,15 +202,15 @@ export default function CustomerDashboard({ user, activeTab: externalTab, onTabC
               {!existingWorker && (
                 <button
                   onClick={() => setShowRegisterWorker(true)}
-                  className="px-4 py-2 rounded-full text-sm font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors flex items-center gap-2"
+                  className="hidden sm:flex px-4 py-2 rounded-full text-sm font-semibold bg-amber-100 text-amber-700 hover:bg-amber-200 transition-colors items-center gap-2"
                 >
                   <Briefcase className="w-4 h-4" />
                   Become a Worker
                 </button>
               )}
               <NotificationBell user={user} />
-              <span className="px-4 py-2 rounded-full text-sm font-medium bg-green-100 text-green-700">
-                {myActiveRequests.length} Active Request{myActiveRequests.length !== 1 ? 's' : ''}
+              <span className="hidden sm:inline-block px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium bg-green-100 text-green-700">
+                {myActiveRequests.length} Active{myActiveRequests.length !== 1 ? 's' : ''}
               </span>
             </div>
           </div>
@@ -308,19 +309,19 @@ export default function CustomerDashboard({ user, activeTab: externalTab, onTabC
             <div className="space-y-6">
               {/* Filters */}
               <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
-                  <div className="md:col-span-1 lg:col-span-2">
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
-                    <CategoryPicker
-                      allowAllCategory
-                      category={workerCategory}
-                      subcategory={workerSubcategory}
-                      onChange={(next) => {
-                        setWorkerCategory(next.category)
-                        setWorkerSubcategory(next.subcategory)
-                      }}
-                      className="mb-4"
-                    />
+                    <select
+                      value={workerCategory}
+                      onChange={(e) => { setWorkerCategory(e.target.value as any); setWorkerSubcategory(undefined) }}
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent transition-all"
+                    >
+                      <option value="All">All Categories</option>
+                      {ALL_CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
@@ -1010,26 +1011,75 @@ function ServiceRequestForm({
 function WorkerCard({ worker, onShowProfile }: { worker: WorkerProfile; onShowProfile: (id: string) => void }) {
   return (
     <CardShell>
-      <div className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-4">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: THEME.primaryLight }}>
-              <Wrench className="w-7 h-7" style={{ color: THEME.primary }} />
+      <div className="p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex items-start gap-3 sm:gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center flex-shrink-0" style={{ background: THEME.primaryLight }}>
+              <Wrench className="w-5 h-5 sm:w-7 sm:h-7" style={{ color: THEME.primary }} />
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">{worker.name}</h3>
-              <div className="flex items-center gap-3 mt-1">
-                <span className="flex items-center gap-1 text-sm font-medium text-amber-600"><Star className="w-4 h-4 fill-current" /> {worker.ratingAvg.toFixed(1)}</span>
-                <span className="text-sm text-gray-500">{worker.jobsDone} jobs</span>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {worker.categories.map(c => <span key={c} className="px-2.5 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-700">{c}</span>)}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base sm:text-lg font-bold text-gray-900 truncate">{worker.businessName || worker.name}</h3>
+              {worker.tagline && <p className="text-xs sm:text-sm text-gray-500 mt-0.5 truncate">{worker.tagline}</p>}
+              <div className="flex items-center gap-2 sm:gap-3 mt-1 flex-wrap">
+                <span className="flex items-center gap-1 text-xs sm:text-sm font-medium text-amber-600"><Star className="w-3 h-3 sm:w-4 sm:h-4 fill-current" /> {worker.ratingAvg.toFixed(1)}</span>
+                <span className="text-xs sm:text-sm text-gray-500">{worker.jobsDone} jobs</span>
+                {worker.isVerified && (
+                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">Verified</span>
+                )}
               </div>
             </div>
           </div>
-          <button onClick={() => onShowProfile(worker.id)} className="px-4 py-2 rounded-xl font-medium text-sm border border-gray-200 hover:bg-gray-50 transition-colors">View Profile</button>
+          <button onClick={() => onShowProfile(worker.id)} className="w-full sm:w-auto px-4 py-2 rounded-xl font-medium text-sm border border-gray-200 hover:bg-gray-50 transition-colors">View Profile</button>
         </div>
-        {worker.about && <p className="mt-4 text-gray-600 text-sm line-clamp-2">{worker.about}</p>}
+        {worker.about && <p className="mt-3 sm:mt-4 text-gray-600 text-xs sm:text-sm line-clamp-2">{worker.about}</p>}
+        
+        {/* Services with Prices */}
+        {worker.services && worker.services.length > 0 && (
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100">
+            <h4 className="text-xs sm:text-sm font-semibold text-gray-800 mb-2">Services & Prices</h4>
+            <div className="space-y-1.5 sm:space-y-2">
+              {worker.services.slice(0, 5).map((service, idx) => (
+                <div key={idx} className="flex items-center justify-between text-xs sm:text-sm">
+                  <span className="text-gray-600 truncate flex-1">{service.name}</span>
+                  <span className="font-medium text-gray-900 ml-2 flex-shrink-0">
+                    {service.price > 0 ? `${service.currency} ${service.price}${service.originalPrice ? ` (was ${service.originalPrice})` : ''}` : 'Quote'}
+                  </span>
+                </div>
+              ))}
+              {worker.services.length > 5 && (
+                <p className="text-xs text-gray-500 mt-1">+{worker.services.length - 5} more services</p>
+              )}
+            </div>
+          </div>
+        )}
+        
+        {/* Contact Info */}
+        {worker.contactInfo && (worker.contactInfo.phone || worker.contactInfo.whatsapp) && (
+          <div className="mt-3 sm:mt-4 flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+            {worker.contactInfo.phone && (
+              <a href={`tel:${worker.contactInfo.phone}`} className="flex items-center gap-1.5 text-green-700 hover:text-green-800" onClick={(e) => e.stopPropagation()}>
+                <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> {worker.contactInfo.phone}
+              </a>
+            )}
+          </div>
+        )}
+        
+        {/* Location */}
+        {worker.locationInfo && (
+          <div className="mt-2 flex items-center gap-1.5 text-xs text-gray-500">
+            <MapPin className="w-3 h-3" />
+            {worker.locationInfo.serviceArea}
+          </div>
+        )}
+        
+        {/* Promotional Offer */}
+        {worker.promotionalOffer?.active && (
+          <div className="mt-3 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200">
+            <p className="text-xs font-medium text-amber-800">
+              {worker.promotionalOffer.title}: {worker.promotionalOffer.description}
+            </p>
+          </div>
+        )}
       </div>
     </CardShell>
   )
