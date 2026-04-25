@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useDBSnapshot } from '../lib/hooks'
 
 export default function WorkerProfileModal({ workerId, onClose }: { workerId: string; onClose: () => void }) {
   const db = useDBSnapshot()
+  const [showAllReviews, setShowAllReviews] = useState(false)
   const worker = useMemo(() => db.workers.find((w) => w.id === workerId), [db.workers, workerId])
 
   if (!worker) {
@@ -18,7 +19,8 @@ export default function WorkerProfileModal({ workerId, onClose }: { workerId: st
     )
   }
 
-  const reviews = useMemo(() => db.reviews.filter((r) => r.workerId === worker.id), [db.reviews, worker.id])
+  const reviews = useMemo(() => db.reviews.filter((r) => r.workerId === worker.id).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()), [db.reviews, worker.id])
+  const reviewsToShow = showAllReviews ? reviews : reviews.slice(0, 10)
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 px-4 py-4 overflow-y-auto">
@@ -86,18 +88,26 @@ export default function WorkerProfileModal({ workerId, onClose }: { workerId: st
 
         {reviews.length > 0 && (
           <div className="mt-6 rounded-xl border border-white/10 bg-black/10 p-4">
-            <div className="text-sm font-semibold text-white/80">Recent reviews</div>
-            <div className="mt-3 space-y-2 max-h-48 overflow-y-auto">
-              {reviews.slice(0, 5).map((rev) => (
+            <div className="text-sm font-semibold text-white/80">Reviews ({reviews.length})</div>
+            <div className="mt-3 space-y-2 max-h-64 overflow-y-auto">
+              {reviewsToShow.map((rev) => (
                 <div key={rev.id} className="rounded-lg border border-white/10 bg-white/5 p-3">
                   <div className="flex items-center justify-between">
-                    <div className="text-xs text-white/60">Customer {rev.customerId}</div>
-                    <div className="text-xs text-yellow-300">{'★'.repeat(rev.rating)}{'☆'.repeat(5 - rev.rating)}</div>
+                    <div className="text-xs text-white/60">{new Date(rev.createdAt).toLocaleDateString()}</div>
+                    <div className="text-xs text-yellow-300">{'★'.repeat(rev.rating)}{'☆'.repeat(10 - rev.rating)} ({rev.rating}/10)</div>
                   </div>
                   {rev.comment && <div className="mt-1 text-xs">{rev.comment}</div>}
                 </div>
               ))}
             </div>
+            {reviews.length > 10 && (
+              <button
+                onClick={() => setShowAllReviews(!showAllReviews)}
+                className="mt-3 w-full py-2 rounded-lg text-sm font-medium text-white/70 hover:bg-white/10 transition-colors"
+              >
+                {showAllReviews ? 'Show Less' : `Load More (${reviews.length - 10} more)`}
+              </button>
+            )}
           </div>
         )}
       </div>

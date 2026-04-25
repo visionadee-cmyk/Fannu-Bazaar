@@ -5,9 +5,13 @@ import { createAdmin, createCustomer, createWorker, seedIfEmpty } from '../lib/d
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup } from 'firebase/auth'
 import { firebaseAuth } from '../lib/firebase'
 import { useLanguage } from '../lib/LanguageContext'
+import AboutPage from './AboutPage'
+import ContactPage from './ContactPage'
+import DisclaimerPage from './DisclaimerPage'
 import { 
   Mail, Lock, ArrowLeft, UserCog, 
-  Chrome, Search, Briefcase, Globe
+  Chrome, Search, Briefcase, Globe,
+  Info, Phone, FileText
 } from 'lucide-react'
 
 // Mint Green color scheme matching Figma design
@@ -25,7 +29,14 @@ const publicImageUrl = (filename: string) => {
   return `${normalizedBase}images/${filename}`
 }
 
+const publicAssetUrl = (filename: string) => {
+  const base = (import.meta as any).env?.BASE_URL ?? '/'
+  const normalizedBase = base.endsWith('/') ? base : `${base}/`
+  return `${normalizedBase}${filename}`
+}
+
 const imageFallbackUrl = (filename: string) => `https://fannu-bazaar.vercel.app/images/${filename}`
+const assetFallbackUrl = (filename: string) => `https://fannu-bazaar.vercel.app/${filename}`
 
 // Simple illustration component - now uses Storyset images
 const LoginIllustration = () => (
@@ -71,6 +82,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
   const db = useDBSnapshot()
   const isAdminPath = typeof window !== 'undefined' && window.location.pathname.startsWith('/admin')
   const [activeTab, setActiveTab] = useState<'welcome' | 'login' | 'signup' | 'signup_form' | 'oauth_role'>('welcome')
+  const [showPage, setShowPage] = useState<'about' | 'contact' | 'disclaimer' | null>(null)
   const [role, setRole] = useState<'customer' | 'worker'>('customer')
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -400,25 +412,54 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
     )
   }
 
+  // Render Info Pages (About, Contact, Disclaimer)
+  if (showPage === 'about') {
+    return <AboutPage onBack={() => setShowPage(null)} />
+  }
+  if (showPage === 'contact') {
+    return <ContactPage onBack={() => setShowPage(null)} />
+  }
+  if (showPage === 'disclaimer') {
+    return <DisclaimerPage onBack={() => setShowPage(null)} />
+  }
+
   // Welcome Screen with Hero Section
   if (activeTab === 'welcome') {
     return (
       <div className={`min-h-screen ${fontClass}`} style={{ background: `linear-gradient(135deg, ${THEME.bg} 0%, #ffffff 100%)` }}>
         {/* Hero Section */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12">
-          {/* Top Bar: Language Toggle + Sign In / Sign Up */}
+          {/* Top Bar: Logo + Language Toggle + Sign In / Sign Up */}
           <div className="flex justify-between items-center mb-6">
-            {/* Language Toggle */}
-            <button
-              onClick={() => setLanguage(language === 'en' ? 'dv' : 'en')}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all"
-            >
-              <Globe className="w-4 h-4" />
-              <span>{language === 'en' ? 'English' : 'ދިވެހި'}</span>
-            </button>
+            {/* Logo */}
+            <div className="flex items-center gap-3">
+              <img 
+                src={publicAssetUrl('logo.png')}
+                alt="Fannu Bazaar"
+                className="w-12 h-12 object-contain"
+                loading="eager"
+                onError={(e) => {
+                  const img = e.currentTarget
+                  if (img.dataset.fallbackApplied === '1') return
+                  img.dataset.fallbackApplied = '1'
+                  img.src = assetFallbackUrl('logo.png')
+                }}
+              />
+              <span className="font-bold text-xl text-gray-900 hidden sm:block">Fannu Bazaar</span>
+            </div>
 
-            {/* Sign In / Sign Up Buttons */}
-            <div className="flex gap-3">
+            <div className="flex items-center gap-3">
+              {/* Language Toggle */}
+              <button
+                onClick={() => setLanguage(language === 'en' ? 'dv' : 'en')}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all"
+              >
+                <Globe className="w-4 h-4" />
+                <span>{language === 'en' ? 'English' : 'ދިވެހި'}</span>
+              </button>
+
+              {/* Sign In / Sign Up Buttons */}
+              <div className="flex gap-3">
               <button
                 onClick={() => setActiveTab('login')}
                 className="px-4 py-2 rounded-lg font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 transition-all"
@@ -434,49 +475,50 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
               </button>
             </div>
           </div>
+        </div>
 
-          <div className="text-center mb-12">
-            {/* Hero Image - Storyset illustration */}
-            <div className="mb-8">
-              <img 
-                src={publicImageUrl('Marketplace-amico.svg')}
-                alt={language === 'en' ? 'Fannu Bazaar' : 'ފަންނު ބާޒާރު'}
-                className="w-full max-w-md mx-auto h-auto"
-                loading="eager"
-                onError={(e) => {
-                  const img = e.currentTarget
-                  if (img.dataset.fallbackApplied === '1') return
-                  img.dataset.fallbackApplied = '1'
-                  const fallback = imageFallbackUrl('Marketplace-amico.svg')
-                  console.error('Failed to load image:', img.src, 'Falling back to:', fallback)
-                  img.src = fallback
-                }}
-              />
-            </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-12">
+          {/* Hero Image - Storyset illustration */}
+          <div className="mb-8">
+            <img 
+              src={publicImageUrl('Marketplace-amico.svg')}
+              alt={language === 'en' ? 'Fannu Bazaar' : 'ފަންނު ބާޒާރު'}
+              className="w-full max-w-md mx-auto h-auto"
+              loading="eager"
+              onError={(e) => {
+                const img = e.currentTarget
+                if (img.dataset.fallbackApplied === '1') return
+                img.dataset.fallbackApplied = '1'
+                const fallback = imageFallbackUrl('Marketplace-amico.svg')
+                console.error('Failed to load image:', img.src, 'Falling back to:', fallback)
+                img.src = fallback
+              }}
+            />
+          </div>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
               {language === 'en' ? (
                 <>Find Skilled Workers.<br /><span style={{ color: THEME.primary }}>Offer Your Services.</span></>
               ) : (
                 <>ހުނަރެއްވާ މުވައްޒަފުން ހޯދާ<br /><span style={{ color: THEME.primary }}>އަމަލުތައް ދައްކާ</span></>
               )}
             </h1>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              {language === 'en' 
-                ? "The Maldives' premier marketplace connecting customers with verified skilled professionals. Get quality work done or grow your service business."
-                : "ދިވެހިރާއްޖޭގެ އެންމެ މަތީ މާރުކޭޓުގައި ފާސްކުރެވިފަ ހުނަރެއްވާ މުވައްޒަފުންނާ ގުޅުވާ. މަސްތައް ފުރިހަމަކުރު ނުވަތަ ތިބާ ހިދުމަތް ވިޔަފާރި ދަށުކޮށް."
-              }
-            </p>
-          </div>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            {language === 'en' 
+              ? "The Maldives' premier marketplace connecting customers with verified skilled professionals. Get quality work done or grow your service business."
+              : "ދިވެހިރާއްޖޭގެ އެންމެ މަތީ މާރުކޭޓުގައި ފާސްކުރެވިފަ ހުނަރެއްވާ މުވައްޒަފުންނާ ގުޅުވާ. މަސްތައް ފުރިހަމަކުރު ނުވަތަ ތިބާ ހިދުމަތް ވިޔަފާރި ދަށުކޮށް."
+            }
+          </p>
+        </div>
 
-          {/* How It Works */}
-          <div className="grid md:grid-cols-3 gap-6 mb-12">
-            <div className="bg-white rounded-2xl p-6 shadow-md text-center">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: THEME.primaryLight }}>
-                <span className="text-2xl font-bold" style={{ color: THEME.primary }}>1</span>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">
-                {language === 'en' ? 'Post or Find' : 'ހޯދު ނުވަތަ ގުޅުވުށޭ'}
-              </h3>
+        {/* How It Works */}
+        <div className="grid md:grid-cols-3 gap-6 mb-12">
+          <div className="bg-white rounded-2xl p-6 shadow-md text-center">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ background: THEME.primaryLight }}>
+              <span className="text-2xl font-bold" style={{ color: THEME.primary }}>1</span>
+            </div>
+            <h3 className="font-semibold text-gray-900 mb-2">
+              {language === 'en' ? 'Post or Find' : 'ހޯދު ނުވަތަ ގުޅުވުށޭ'}
+            </h3>
               <p className="text-sm text-gray-500">
                 {language === 'en' 
                   ? 'Customers post service needs. Workers browse and accept jobs matching their skills.'
@@ -514,78 +556,108 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
             </div>
           </div>
 
-          {/* Benefits */}
-          <div className="grid md:grid-cols-2 gap-6 mb-12">
-            <div className="bg-white rounded-2xl p-6 shadow-md">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: THEME.primaryLight }}>
-                  <Search className="w-6 h-6" style={{ color: THEME.primary }} />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {language === 'en' ? 'For Customers' : 'ކަސްޓަމަރުންގެ މަންފަވެގެން'}
-                </h3>
+        {/* Benefits */}
+        <div className="grid md:grid-cols-2 gap-6 mb-12">
+          <div className="bg-white rounded-2xl p-6 shadow-md">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: THEME.primaryLight }}>
+                <Search className="w-6 h-6" style={{ color: THEME.primary }} />
               </div>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
-                  {language === 'en' ? 'Find verified skilled workers quickly' : 'ފާސްކުރެވިފަ ހުނަރެއްވާ މުވައްޒަފުން އަވަސްކަމަށް ހޯދާ'}
-                </li>
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
-                  {language === 'en' ? 'Compare quotes and reviews' : 'ގޮތްވަކިވުން އަދި ރިވިއުސް ބަލާ'}
-                </li>
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
-                  {language === 'en' ? 'Track job progress in real-time' : 'މަސްތަކުގެ ދަށްކަން ރީލް-ޓައިމްގައި ދަށްކުރާ'}
-                </li>
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
-                  {language === 'en' ? 'Secure payment handling' : 'އަމާން ފައިސާގެ ބަރުދަން'}
-                </li>
-              </ul>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {language === 'en' ? 'For Customers' : 'ކަސްޓަމަރުންގެ މަންފަވެގެން'}
+              </h3>
             </div>
-            <div className="bg-white rounded-2xl p-6 shadow-md">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-50">
-                  <Briefcase className="w-6 h-6 text-amber-500" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {language === 'en' ? 'For Workers' : 'މުވައްޒަފުންގެ މަންފަވެގެން'}
-                </h3>
-              </div>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
-                  {language === 'en' ? 'Access to more job opportunities' : 'ގިނަ މަސްފުޅުތަކަށް ފުރުސަން ލިބޭ'}
-                </li>
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
-                  {language === 'en' ? 'Build your reputation with reviews' : 'ރިވިއުސް ފެރުން މަގުފަހިކުރުން'}
-                </li>
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
-                  {language === 'en' ? 'Manage jobs and schedule easily' : 'މަސްތައް އަދި ޝެޑިއިއުލް އަވަސްކޮށް މެނޭޖްކުރުން'}
-                </li>
-                <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
-                  {language === 'en' ? 'Get paid securely and on time' : 'އަމާނުކަމަށް އަދި ވަގުތުން ފައިސާ ނަގާ'}
-                </li>
-              </ul>
-            </div>
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
+                {language === 'en' ? 'Find verified skilled workers quickly' : 'ފާސްކުރެވިފަ ހުނަރެއްވާ މުވައްޒަފުން އަވަސްކަމަށް ހޯދާ'}
+              </li>
+              <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
+                {language === 'en' ? 'Compare quotes and reviews' : 'ގޮތްވަކިވުން އަދި ރިވިއުސް ބަލާ'}
+              </li>
+              <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
+                {language === 'en' ? 'Track job progress in real-time' : 'މަސްތަކުގެ ދަށްކަން ރީލް-ޓައިމްގައި ދަށްކުރާ'}
+              </li>
+              <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
+                {language === 'en' ? 'Secure payment handling' : 'އަމާން ފައިސާގެ ބަރުދަން'}
+              </li>
+            </ul>
           </div>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={() => setActiveTab('signup')}
-              className="px-8 py-4 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all text-lg"
-              style={{ background: THEME.primary }}
-            >
-              {language === 'en' ? 'Get Started Free' : 'މިހާރު ފަށާ (މަސާނަ)'}
-            </button>
-            <button
-              onClick={() => setActiveTab('login')}
-              className="px-8 py-4 rounded-xl font-semibold bg-white text-gray-700 border-2 border-gray-200 hover:bg-gray-50 transition-all text-lg"
-            >
-              {language === 'en' ? 'I already have an account' : 'މަގަމް އައްކައުންޓެއް ހުރީ'}
-            </button>
+          <div className="bg-white rounded-2xl p-6 shadow-md">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-amber-50">
+                <Briefcase className="w-6 h-6 text-amber-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {language === 'en' ? 'For Workers' : 'މުވައްޒަފުންގެ މަންފަވެގެން'}
+              </h3>
+            </div>
+            <ul className="space-y-2 text-sm text-gray-600">
+              <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
+                {language === 'en' ? 'Access to more job opportunities' : 'ގިނަ މަސްފުޅުތަކަށް ފުރުސަން ލިބޭ'}
+              </li>
+              <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
+                {language === 'en' ? 'Build your reputation with reviews' : 'ރިވިއުސް ފެރުން މަގުފަހިކުރުން'}
+              </li>
+              <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
+                {language === 'en' ? 'Manage jobs and schedule easily' : 'މަސްތައް އަދި ޝެޑިއިއުލް އަވަސްކޮށް މެނޭޖްކުރުން'}
+              </li>
+              <li className="flex items-center gap-2"><span style={{ color: THEME.primary }}>✓</span> 
+                {language === 'en' ? 'Get paid securely and on time' : 'އަމާނުކަމަށް އަދި ވަގުތުން ފައިސާ ނަގާ'}
+              </li>
+            </ul>
           </div>
         </div>
+
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <button
+            onClick={() => setActiveTab('signup')}
+            className="px-8 py-4 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all text-lg"
+            style={{ background: THEME.primary }}
+          >
+            {language === 'en' ? 'Get Started Free' : 'މިހާރު ފަށާ (މަސާނަ)'}
+          </button>
+          <button
+            onClick={() => setActiveTab('login')}
+            className="px-8 py-4 rounded-xl font-semibold bg-white text-gray-700 border-2 border-gray-200 hover:bg-gray-50 transition-all text-lg"
+          >
+            {language === 'en' ? 'I already have an account' : 'މަގަމް އައްކައުންޓެއް ހުރީ'}
+          </button>
+        </div>
+
+        {/* Footer Links */}
+        <div className="border-t border-gray-200 pt-8">
+          <div className="flex flex-wrap justify-center gap-6 mb-4">
+            <button
+              onClick={() => setShowPage('about')}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <Info className="w-4 h-4" />
+              <span>{language === 'en' ? 'About App' : 'އެޕް މަޢުލޫމާތު'}</span>
+            </button>
+            <button
+              onClick={() => setShowPage('contact')}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <Phone className="w-4 h-4" />
+              <span>{language === 'en' ? 'Contact Us' : 'ގުޅުން'}</span>
+            </button>
+            <button
+              onClick={() => setShowPage('disclaimer')}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <FileText className="w-4 h-4" />
+              <span>{language === 'en' ? 'Terms & Disclaimer' : 'ޝަރުތުތައް'}</span>
+            </button>
+          </div>
+          <p className="text-center text-sm text-gray-500">
+            © 2026 Fannu Bazaar. All rights reserved.
+          </p>
+        </div>
       </div>
-    )
-  }
+    </div>
+  )
+}
 
   // Login Screen - Matching Figma Design
   if (activeTab === 'login') {
@@ -600,6 +672,22 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
 
           {/* Main Card */}
           <div className="bg-white rounded-3xl shadow-lg p-6">
+            {/* Logo */}
+            <div className="flex justify-center mb-4">
+              <img 
+                src={publicAssetUrl('logo.png')}
+                alt="Fannu Bazaar"
+                className="w-16 h-16 object-contain"
+                loading="eager"
+                onError={(e) => {
+                  const img = e.currentTarget
+                  if (img.dataset.fallbackApplied === '1') return
+                  img.dataset.fallbackApplied = '1'
+                  img.src = assetFallbackUrl('logo.png')
+                }}
+              />
+            </div>
+
             {/* Illustration */}
             <LoginIllustration />
             
@@ -702,6 +790,30 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
                 <Chrome className="w-4 h-4" />
                 <span className="text-xs font-medium text-gray-700">Sign in with Google</span>
               </button>
+            </div>
+
+            {/* Footer Links */}
+            <div className="border-t border-gray-200 mt-6 pt-4">
+              <div className="flex flex-wrap justify-center gap-4 text-xs">
+                <button
+                  onClick={() => setShowPage('about')}
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  {language === 'en' ? 'About' : 'މަޢުލޫމާތު'}
+                </button>
+                <button
+                  onClick={() => setShowPage('contact')}
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  {language === 'en' ? 'Contact' : 'ގުޅުން'}
+                </button>
+                <button
+                  onClick={() => setShowPage('disclaimer')}
+                  className="text-gray-500 hover:text-gray-700 transition-colors"
+                >
+                  {language === 'en' ? 'Terms' : 'ޝަރުތުތައް'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

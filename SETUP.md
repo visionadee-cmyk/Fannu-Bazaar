@@ -60,19 +60,33 @@ The application is fully responsive. Test on:
 
 ## 🔧 Step 6: Optional Enhancements
 
-### 6.1 Add Storage for Profile Pictures
+### 6.1 Cloudinary Image Upload (Required for Payment Slips & Job Images)
+1. Sign up at [Cloudinary](https://cloudinary.com)
+2. Get your Cloud Name from the dashboard
+3. Create an unsigned upload preset (e.g., "fannu_preset")
+4. Add to your `.env` file:
+   ```
+   VITE_CLOUDINARY_CLOUD_NAME=your_cloud_name
+   VITE_CLOUDINARY_UPLOAD_PRESET=your_upload_preset
+   ```
+5. Features enabled:
+   - Customer job image uploads
+   - Payment slip/receipt uploads
+   - Worker profile pictures
+
+### 6.2 Add Storage for Profile Pictures
 1. In Supabase, create a Storage bucket called `profiles`
 2. Set up appropriate storage policies
 3. Update the worker profile form to handle image uploads
 
-### 6.2 Enable Email Notifications
+### 6.3 Enable Email Notifications
 1. Configure SMTP settings in Supabase
 2. Create email templates for:
    - New booking notifications
    - Booking status updates
    - Review requests
 
-### 6.3 Add Analytics
+### 6.4 Add Analytics
 1. Sign up for Vercel Analytics
 2. Enable in your Vercel project dashboard
 3. Track user engagement and popular services

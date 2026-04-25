@@ -1,10 +1,10 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useDBSnapshot } from '../lib/hooks'
 import type { ServiceRequest } from '../lib/types'
-import { selectWorker } from '../lib/db'
+import { selectWorker, customerConfirmInspection, customerRejectInspectionWithAlternate, approveQuote, customerConfirmInspectionCompleted, customerConfirmWorkCompleted, customerConfirmWorkSchedule, customerRejectWorkScheduleWithAlternate } from '../lib/db'
 import RequestTimeline from './RequestTimeline'
-import { X, Wrench, MapPin, DollarSign, Clock, User, Star } from 'lucide-react'
+import { X, Wrench, MapPin, DollarSign, Clock, User, Star, CheckCircle, XCircle } from 'lucide-react'
 
 const THEME = {
   primary: '#10B981',
@@ -23,8 +23,176 @@ function formatIso(iso?: string) {
 
 function statusLabel(s: ServiceRequest['status']) { return s.replace(/_/g, ' ') }
 
+// Work Schedule Confirmation Section Component
+function WorkScheduleConfirmationSection({ req, customerId }: { req: ServiceRequest; customerId: string }) {
+  const [showRejectForm, setShowRejectForm] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [alternateTime, setAlternateTime] = useState('')
+  const pendingProposal = req.work?.proposals?.find((p) => p.status === 'pending')
+
+  if (showRejectForm) {
+    return (
+      <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50">
+        <p className="text-sm font-semibold text-gray-800 mb-3">Propose alternate work time</p>
+        <textarea
+          value={rejectionReason}
+          onChange={(e) => setRejectionReason(e.target.value)}
+          placeholder="Reason for rejecting current time..."
+          className="w-full p-3 rounded-xl border border-gray-200 mb-3 text-sm"
+          rows={2}
+        />
+        <input
+          type="datetime-local"
+          value={alternateTime}
+          onChange={(e) => setAlternateTime(e.target.value)}
+          className="w-full p-3 rounded-xl border border-gray-200 mb-3 text-sm"
+        />
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowRejectForm(false)}
+            className="flex-1 py-3 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              if (rejectionReason && alternateTime) {
+                customerRejectWorkScheduleWithAlternate({
+                  requestId: req.id,
+                  customerId,
+                  rejectionReason,
+                  alternateTimeIso: new Date(alternateTime).toISOString(),
+                })
+              }
+            }}
+            disabled={!rejectionReason || !alternateTime}
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+            style={{ background: '#F43F5E' }}
+          >
+            Send Alternate
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 rounded-2xl border border-cyan-200 bg-cyan-50">
+      <p className="text-sm font-semibold text-gray-800 mb-2">
+        Work scheduled for:{' '}
+        <span className="font-bold">{formatIso(pendingProposal?.scheduledFor ?? req.work?.scheduledFor)}</span>
+      </p>
+      {pendingProposal?.rejectionReason && (
+        <p className="text-xs text-rose-600 mb-3">Previous rejection: {pendingProposal.rejectionReason}</p>
+      )}
+      <div className="flex gap-3">
+        <button
+          onClick={() => customerConfirmWorkSchedule({ requestId: req.id, customerId })}
+          className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+          style={{ background: '#10B981' }}
+        >
+          <CheckCircle className="w-5 h-5 inline mr-1" />
+          Confirm
+        </button>
+        <button
+          onClick={() => setShowRejectForm(true)}
+          className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+          style={{ background: '#F43F5E' }}
+        >
+          <XCircle className="w-5 h-5 inline mr-1" />
+          Reject + Propose
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// Inspection Confirmation Section Component
+function InspectionConfirmationSection({ req, customerId }: { req: ServiceRequest; customerId: string }) {
+  const [showRejectForm, setShowRejectForm] = useState(false)
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [alternateTime, setAlternateTime] = useState('')
+  const pendingProposal = req.inspection?.proposals?.find((p) => p.status === 'pending')
+
+  if (showRejectForm) {
+    return (
+      <div className="p-4 rounded-2xl border border-rose-200 bg-rose-50">
+        <p className="text-sm font-semibold text-gray-800 mb-3">Propose alternate inspection time</p>
+        <textarea
+          value={rejectionReason}
+          onChange={(e) => setRejectionReason(e.target.value)}
+          placeholder="Reason for rejecting current time..."
+          className="w-full p-3 rounded-xl border border-gray-200 mb-3 text-sm"
+          rows={2}
+        />
+        <input
+          type="datetime-local"
+          value={alternateTime}
+          onChange={(e) => setAlternateTime(e.target.value)}
+          className="w-full p-3 rounded-xl border border-gray-200 mb-3 text-sm"
+        />
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowRejectForm(false)}
+            className="flex-1 py-3 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              if (rejectionReason && alternateTime) {
+                customerRejectInspectionWithAlternate({
+                  requestId: req.id,
+                  customerId,
+                  rejectionReason,
+                  alternateTimeIso: new Date(alternateTime).toISOString(),
+                })
+              }
+            }}
+            disabled={!rejectionReason || !alternateTime}
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+            style={{ background: '#F43F5E' }}
+          >
+            Send Alternate
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-4 rounded-2xl border border-indigo-200 bg-indigo-50">
+      <p className="text-sm font-semibold text-gray-800 mb-2">
+        Inspection proposed for:{' '}
+        <span className="font-bold">{formatIso(pendingProposal?.scheduledFor ?? req.inspection?.scheduledFor)}</span>
+      </p>
+      {pendingProposal?.rejectionReason && (
+        <p className="text-xs text-rose-600 mb-3">Previous rejection: {pendingProposal.rejectionReason}</p>
+      )}
+      <div className="flex gap-3">
+        <button
+          onClick={() => customerConfirmInspection({ requestId: req.id, customerId })}
+          className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+          style={{ background: '#10B981' }}
+        >
+          <CheckCircle className="w-5 h-5" />
+          Confirm
+        </button>
+        <button
+          onClick={() => setShowRejectForm(true)}
+          className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
+          style={{ background: '#F43F5E' }}
+        >
+          <XCircle className="w-5 h-5" />
+          Reject + Propose
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function RequestDetailModal({
-  req,
+  req: initialReq,
   onClose,
   onShowWorkerProfile,
   customerId,
@@ -35,9 +203,13 @@ export default function RequestDetailModal({
   customerId: string
 }) {
   const db = useDBSnapshot()
+  // Get fresh request data from DB
+  const req = useMemo(() => db.requests.find((r) => r.id === initialReq.id) ?? initialReq, [db.requests, initialReq])
+  const [justSelectedWorkerId, setJustSelectedWorkerId] = useState<string | null>(null)
   const worker = useMemo(() => db.workers.find((w) => w.id === req.acceptedWorkerId), [db.workers, req.acceptedWorkerId])
   const interested = useMemo(() => db.workers.filter((w) => (req.interestedWorkerIds ?? []).includes(w.id)), [db.workers, req.interestedWorkerIds])
   const offers = req.quoteOffers ?? []
+  const canSelectWorker = (req.status === 'open' || req.status === 'pending_customer_confirmation') && !req.acceptedWorkerId && !justSelectedWorkerId
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
@@ -125,13 +297,26 @@ export default function RequestDetailModal({
                       >
                         View
                       </button>
-                      <button
-                        onClick={() => selectWorker({ requestId: req.id, customerId, workerId: w.id })}
-                        className="px-4 py-2 rounded-lg font-medium text-sm text-white shadow-md hover:shadow-lg transition-all"
-                        style={{ background: THEME.primary }}
-                      >
-                        Select
-                      </button>
+                      {canSelectWorker ? (
+                        <button
+                          onClick={() => {
+                            setJustSelectedWorkerId(w.id)
+                            selectWorker({ requestId: req.id, customerId, workerId: w.id })
+                          }}
+                          className="px-4 py-2 rounded-lg font-medium text-sm text-white shadow-md hover:shadow-lg transition-all"
+                          style={{ background: THEME.primary }}
+                        >
+                          Select
+                        </button>
+                      ) : justSelectedWorkerId === w.id || req.acceptedWorkerId === w.id ? (
+                        <button
+                          disabled
+                          className="px-4 py-2 rounded-lg font-medium text-sm text-green-700 bg-green-100 cursor-default"
+                        >
+                          <CheckCircle className="w-4 h-4 inline mr-1" />
+                          Selected
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 ))}
@@ -156,6 +341,60 @@ export default function RequestDetailModal({
                   )
                 })}
               </div>
+            </div>
+          )}
+
+          {/* Inspection Confirmation UI */}
+          {req.status === 'inspection_pending_customer_confirmation' && (
+            <InspectionConfirmationSection req={req} customerId={customerId} />
+          )}
+
+          {/* Quote Approval UI */}
+          {req.status === 'quote_pending_approval' && req.quote && (
+            <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50">
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">Quote Received</h3>
+              <div className="text-2xl font-bold mb-3" style={{ color: THEME.primary }}>MVR {req.quote.amount}</div>
+              {req.quote.notes && <p className="text-sm text-gray-600 mb-3">{req.quote.notes}</p>}
+              <button
+                onClick={() => approveQuote({ requestId: req.id, customerId })}
+                className="w-full py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+                style={{ background: THEME.primary }}
+              >
+                Approve Quote
+              </button>
+            </div>
+          )}
+
+          {/* Inspection Completed Confirmation */}
+          {req.status === 'inspection_completed_pending_customer_confirm' && (
+            <div className="p-4 rounded-2xl border border-purple-200 bg-purple-50">
+              <p className="text-sm text-gray-600 mb-3">Inspection completed. Please confirm to proceed.</p>
+              <button
+                onClick={() => customerConfirmInspectionCompleted({ requestId: req.id, customerId })}
+                className="w-full py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+                style={{ background: THEME.primary }}
+              >
+                Confirm Inspection Done
+              </button>
+            </div>
+          )}
+
+          {/* Work Schedule Confirmation */}
+          {req.status === 'work_pending_customer_confirmation' && (
+            <WorkScheduleConfirmationSection req={req} customerId={customerId} />
+          )}
+
+          {/* Work Completed Confirmation */}
+          {req.status === 'work_completed_pending_customer_confirm' && (
+            <div className="p-4 rounded-2xl border border-orange-200 bg-orange-50">
+              <p className="text-sm text-gray-600 mb-3">Worker marked work as completed. Please confirm.</p>
+              <button
+                onClick={() => customerConfirmWorkCompleted({ requestId: req.id, customerId })}
+                className="w-full py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+                style={{ background: THEME.primary }}
+              >
+                Confirm Work Completed
+              </button>
             </div>
           )}
 

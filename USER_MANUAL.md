@@ -87,11 +87,28 @@ The Customer Dashboard provides everything you need to manage service requests:
 - **Pending Customer Confirmation**: Workers have shown interest, awaiting your selection
 - **Inspection Pending**: Awaiting inspection proposal (if inspection required)
 - **Inspection Scheduled**: An inspection has been arranged
+- **Inspection Completed**: Inspection done, awaiting your confirmation
 - **Awaiting Quote**: Worker selected, waiting for price quote
 - **Quote Pending**: Waiting for price quote approval
 - **Work Scheduled**: Work date has been set
+- **Work Completed**: Work done, awaiting your confirmation
 - **Payment Pending**: Work completed, awaiting payment
 - **Completed**: Job finished, paid, and reviewed
+
+#### Image Upload
+
+When creating a service request, you can upload images to help workers understand the job:
+1. Click **"Upload Images"** in the request form
+2. Select one or more images (JPG, PNG)
+3. Images are uploaded to Cloudinary and visible to workers
+
+#### Inspection Toggle
+
+You can toggle the inspection requirement anytime until inspection is completed:
+1. Find your request in "My Requests" tab
+2. Click **"Toggle Inspection"** button
+3. If turned OFF: Request moves directly to quote phase if worker is selected
+4. If turned ON: Worker must schedule and complete inspection first
 
 ### Contact Person Feature
 
@@ -112,20 +129,40 @@ For services you need regularly (cleaning, maintenance, etc.):
 #### Actions You May Need to Take
 
 1. **Confirm Worker**: Approve a worker who expressed interest
-2. **Confirm Inspection**: Approve inspection date/time proposed by worker
-3. **Approve Quote**: Accept the price quote submitted by worker
-4. **Confirm Work Schedule**: Approve the proposed work schedule
-5. **Confirm Completion**: Verify work is completed satisfactorily
-6. **Leave Review**: Rate the worker and provide feedback
+2. **Toggle Inspection**: Turn inspection requirement ON/OFF anytime
+3. **Confirm Inspection**: Approve inspection date/time proposed by worker
+4. **Confirm Inspection Completed**: Mark inspection as finished
+5. **Approve Quote**: Accept the price quote submitted by worker
+6. **Confirm Work Schedule**: Approve the proposed work schedule
+7. **Confirm Work Completed**: Verify work is completed satisfactorily
+8. **Upload Payment Slip**: Upload payment proof (image/PDF) after paying
+9. **Mark Paid on Spot**: Alternative to slip upload for cash payments
+10. **Leave Review**: Rate the worker 1-10 and provide feedback
+
+#### Payment Process
+
+After work is completed:
+1. Worker generates invoice or you can proceed without invoice
+2. **Upload Payment Slip** (recommended):
+   - Take photo or screenshot of payment proof
+   - Upload via the payment section
+   - Workers can view and confirm receipt
+3. **Or Mark "Paid on Spot"**:
+   - Use if you paid cash directly to worker
+   - Worker will confirm receipt
+4. Worker confirms payment → Request moves to completed
+5. You can now leave a review
 
 ### Reviewing Workers
 
-After a job is completed:
-1. Navigate to the completed job
-2. Click **"Leave Review"**
-3. Rate the worker (1-10 scale)
-4. Write your feedback
+After payment is confirmed:
+1. Navigate to the completed job in "Completed" tab
+2. Click **"Leave Review"** button
+3. Rate the worker on 1-10 scale (10 = excellent)
+4. Write your feedback (optional but recommended)
 5. Submit the review
+
+**Note**: Your review will be visible on the worker's profile along with their average rating and total review count.
 
 ---
 
@@ -221,6 +258,15 @@ A strong profile helps you get more jobs:
    - Earn good ratings (1-10 scale) and positive reviews
    - Respond quickly to new opportunities
    - Consider offering discounts for recurring service requests
+
+#### Viewing Your Reviews
+
+Your reviews are visible to customers when they view your profile:
+- **Rating**: Average rating displayed (e.g., 8.5/10)
+- **Review Count**: Total number of reviews received
+- **Recent Reviews**: Last 10 reviews shown by default
+- **Load More**: Click to see all historical reviews
+- **Sorted by Date**: Newest reviews appear first
 
 ---
 
@@ -388,16 +434,39 @@ Each category includes 5-6 specific subcategories for precise service matching.
 The platform is fully optimized for mobile devices:
 
 #### Customer Mobile Features
-- **Hamburger Menu**: Access notifications, profile, and sign out from top-right menu
+- **Notification Bell**: Bell icon in header shows unread count with real-time updates
+- **Hamburger Menu**: Access profile and sign out from top-right menu
 - **Two-Step Request Form**: Select category → form auto-scrolls to details fields
 - **Compact Tabs**: Grid layout for My Requests / New Request / Actions / Done / Workers
 - **Modal New Request**: Full-screen popup for creating requests without scrolling
 
 #### Worker Mobile Features
-- **Hamburger Menu**: Quick access to notifications and sign out
+- **Notification Bell**: Bell icon with sound alerts for new notifications
+- **Hamburger Menu**: Quick access to profile and sign out
 - **Grid Tab Navigation**: Browse / My Jobs / Actions / Done / Profile in 2-column grid
 - **Jobs First Browse**: See available jobs immediately; filters collapsed behind "Filters" button
 - **Swipe-Friendly Cards**: Touch-optimized job cards with clear action buttons
+
+### Notification System
+
+All dashboards include a **Notification Bell** for real-time updates:
+
+#### Notification Bell Features
+- **Bell Icon**: Located in the dashboard header
+- **Unread Badge**: Red badge shows count of unread notifications
+- **Sound Effect**: Audio beep plays when new notifications arrive
+- **Dropdown Panel**: Click bell to see all notifications
+- **Mark as Read**: Individual or "Mark All Read" options
+
+#### Notifications Sent For
+- Worker shows interest in your job
+- Customer selects you for a job
+- Inspection scheduled/proposed
+- Quote submitted or approved
+- Work schedule confirmed
+- Work completed and ready for payment
+- Payment slip uploaded
+- Payment confirmed
 
 ### Mobile vs Desktop Differences
 
@@ -496,5 +565,5 @@ For issues not covered here:
 
 ---
 
-*Last Updated: April 23, 2026*
-*Platform Version: v2.1 - Full Workflow & Recurring Services*
+*Last Updated: April 24, 2026*
+*Platform Version: v2.2 - Notifications, Payment & Reviews*

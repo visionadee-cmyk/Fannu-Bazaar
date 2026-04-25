@@ -356,6 +356,7 @@ export function createRequest(input: {
   isRecurring?: boolean
   recurringFrequency?: import('./types').RecurringFrequency
   recurringDiscount?: number
+  images?: string[]
 }) {
   const db = load()
   const customer = db.customers.find((c) => c.id === input.customerId)
@@ -372,6 +373,82 @@ export function createRequest(input: {
   db.requests.unshift(req)
   save(db)
   return req
+}
+
+export function cancelRequest(params: { requestId: string; customerId: string }) {
+  const db = load()
+  const req = findReqOrThrow(db, params.requestId)
+  if (req.customerId !== params.customerId) throw new Error('Not your request')
+  // Only allow cancellation for requests that haven't started work yet
+  const cancellableStatuses: ServiceRequestStatus[] = [
+    'open',
+    'pending_customer_confirmation',
+    'inspection_pending_worker_proposal',
+    'inspection_pending_customer_confirmation',
+    'inspection_scheduled',
+    'awaiting_quote',
+    'quote_pending_approval',
+  ]
+  if (!cancellableStatuses.includes(req.status)) {
+    throw new Error('Cannot cancel request at this stage')
+  }
+  // Notify interested workers if any
+  if (req.interestedWorkerIds && req.interestedWorkerIds.length > 0) {
+    req.interestedWorkerIds.forEach((workerId) => {
+      createNotification({
+        userId: workerId,
+        userRole: 'worker',
+        type: 'work_completed', // Using existing type
+        title: 'Request Cancelled',
+        message: `The request "${req.title}" has been cancelled by the customer.`,
+        requestId: params.requestId,
+      })
+    })
+  }
+  // Remove the request from the database
+  db.requests = db.requests.filter((r) => r.id !== params.requestId)
+  save(db)
+}
+
+export function deleteAllRequests() {
+  const db = load()
+  db.requests = []
+  save(db)
+}
+
+export function toggleInspectionRequirement(params: { requestId: string; customerId: string; requiresInspection: boolean }) {
+  const db = load()
+  const req = findReqOrThrow(db, params.requestId)
+  if (req.customerId !== params.customerId) throw new Error('Not your request')
+  // Can only change before inspection is completed
+  const blockedStatuses: ServiceRequestStatus[] = [
+    'inspection_completed_pending_customer_confirm',
+    'awaiting_quote',
+    'quote_pending_approval',
+    'work_pending_worker_schedule',
+    'work_pending_customer_confirmation',
+    'work_scheduled',
+    'work_completed_pending_customer_confirm',
+    'payment_pending',
+    'completed',
+  ]
+  if (blockedStatuses.includes(req.status)) {
+    throw new Error('Cannot change inspection requirement after inspection is completed')
+  }
+  req.requiresInspection = params.requiresInspection
+  // If turning off inspection, move to awaiting_quote if worker is selected
+  if (!params.requiresInspection && req.acceptedWorkerId) {
+    setStatus(req, 'awaiting_quote')
+    createNotification({
+      userId: req.acceptedWorkerId,
+      userRole: 'worker',
+      type: 'inspection_scheduled',
+      title: 'Inspection not required',
+      message: `Customer changed request "${req.title}" - no inspection needed. Please submit your quote directly.`,
+      requestId: params.requestId,
+    })
+  }
+  save(db)
 }
 
 export function createNotification(input: {
@@ -1079,6 +1156,34 @@ export function markPaidOnSpot(params: { requestId: string; customerId: string }
       type: 'payment_received',
       title: 'Customer marked paid on spot',
       message: `Customer marked "${req.title}" as paid on spot. Please confirm receipt of payment.`,
+      requestId: params.requestId,
+    })
+  }
+
+  save(db)
+}
+
+export function markPaymentWithSlip(params: { requestId: string; customerId: string; paymentSlipUrl: string; paymentMethod: 'bank_transfer' | 'cash' | 'other' }) {
+  const db = load()
+  const req = findReqOrThrow(db, params.requestId)
+  if (req.customerId !== params.customerId) throw new Error('Not your request')
+  if (req.status !== 'payment_pending') throw new Error('Not in payment phase')
+
+  req.payment = {
+    status: 'pending',
+    markedAt: nowIso(),
+    customerMarkedAt: nowIso(),
+    paymentSlipUrl: params.paymentSlipUrl,
+    paymentMethod: params.paymentMethod,
+  }
+
+  if (req.acceptedWorkerId) {
+    createNotification({
+      userId: req.acceptedWorkerId,
+      userRole: 'worker',
+      type: 'payment_received',
+      title: 'Payment marked with slip',
+      message: `Customer uploaded payment slip for "${req.title}". Please confirm receipt of payment.`,
       requestId: params.requestId,
     })
   }

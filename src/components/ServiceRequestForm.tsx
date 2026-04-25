@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import type { RecurringFrequency, ServiceCategory } from '../lib/types'
 import { ALL_CATEGORIES } from '../lib/categoryConfig'
 import CategoryPicker from './CategoryPicker'
-import { RefreshCw, User } from 'lucide-react'
+import { uploadImageToCloudinary } from '../lib/cloudinary'
+import { RefreshCw, User, Upload, X, ImageIcon, Loader2 } from 'lucide-react'
 
 export default function ServiceRequestForm({
   onSubmit,
@@ -20,6 +21,7 @@ export default function ServiceRequestForm({
     isRecurring?: boolean
     recurringFrequency?: RecurringFrequency
     recurringDiscount?: number
+    images?: string[]
   }) => void
 }) {
   const [category, setCategory] = useState<ServiceCategory>('AC')
@@ -34,6 +36,9 @@ export default function ServiceRequestForm({
   const [isRecurring, setIsRecurring] = useState(false)
   const [recurringFrequency, setRecurringFrequency] = useState<RecurringFrequency>('monthly')
   const [recurringDiscount, setRecurringDiscount] = useState(10)
+  const [images, setImages] = useState<string[]>([])
+  const [uploadingImages, setUploadingImages] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   return (
     <form
@@ -53,6 +58,7 @@ export default function ServiceRequestForm({
           isRecurring: isRecurring || undefined,
           recurringFrequency: isRecurring ? recurringFrequency : undefined,
           recurringDiscount: isRecurring ? recurringDiscount : undefined,
+          images: images.length > 0 ? images : undefined,
         })
         setTitle('')
         setDescription('')
@@ -63,6 +69,7 @@ export default function ServiceRequestForm({
         setContactPhone('')
         setIsRecurring(false)
         setRecurringDiscount(10)
+        setImages([])
       }}
     >
       <div className="mb-3 text-sm font-semibold text-gray-900">Create Service Request</div>
@@ -226,6 +233,72 @@ export default function ServiceRequestForm({
               </div>
             </div>
           )}
+        </div>
+
+        {/* Image Upload */}
+        <div className="md:col-span-2 border-t border-gray-200 pt-4 mt-2">
+          <div className="flex items-center gap-2 mb-3">
+            <ImageIcon className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-900">Upload Images (Optional)</span>
+          </div>
+          <input
+            type="file"
+            ref={fileInputRef}
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={async (e) => {
+              const files = e.target.files
+              if (files) {
+                setUploadingImages(true)
+                try {
+                  for (const file of Array.from(files)) {
+                    if (images.length >= 5) break
+                    const imageUrl = await uploadImageToCloudinary(file)
+                    setImages((prev) => [...prev, imageUrl])
+                  }
+                } catch (error) {
+                  alert('Failed to upload image. Please try again.')
+                } finally {
+                  setUploadingImages(false)
+                  // Reset input so same file can be selected again if needed
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = ''
+                  }
+                }
+              }
+            }}
+          />
+          <div className="flex flex-wrap gap-2 mb-3">
+            {images.map((img, idx) => (
+              <div key={idx} className="relative">
+                <img src={img} alt={`Upload ${idx + 1}`} className="w-20 h-20 object-cover rounded-lg" />
+                <button
+                  type="button"
+                  onClick={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+            {uploadingImages && (
+              <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center">
+                <Loader2 className="w-6 h-6 text-gray-500 animate-spin" />
+              </div>
+            )}
+            {!uploadingImages && images.length < 5 && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-emerald-500 hover:text-emerald-500 transition-colors"
+              >
+                <Upload className="w-6 h-6 mb-1" />
+                <span className="text-xs">Add</span>
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-gray-500">Upload up to 5 images to help workers understand the job better</p>
         </div>
       </div>
 

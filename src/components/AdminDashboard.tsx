@@ -5,6 +5,7 @@ import {
   createWorker,
   deleteCustomer,
   deleteWorker,
+  deleteAllRequests,
   setCustomerActive,
   setWorkerActive,
   updateCustomer,
@@ -12,6 +13,7 @@ import {
 } from '../lib/db'
 import { useDBSnapshot } from '../lib/hooks'
 import WorkerProfileModal from './WorkerProfileModal'
+import NotificationBell from './NotificationBell'
 import Illustration from './Illustration'
 import type { CustomerProfile, SessionUser, ServiceRequest, WorkerProfile } from '../lib/types'
 import type { AdminTab } from './BottomNav'
@@ -161,6 +163,7 @@ export default function AdminDashboard({
               <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
                 {stats.pendingRequests} Pending Jobs
               </span>
+              <NotificationBell user={user} />
             </div>
           </div>
 
@@ -971,6 +974,17 @@ function WorksTab({ onShowProfile }: { onShowProfile: (id: string) => void }) {
                 placeholder="Search jobs..."
               />
             </div>
+            <button
+              onClick={() => {
+                if (confirm('Are you sure you want to delete ALL jobs? This action cannot be undone.')) {
+                  deleteAllRequests()
+                }
+              }}
+              className="px-4 py-2 rounded-xl font-medium text-sm text-red-600 border border-red-200 hover:bg-red-50 transition-colors flex items-center gap-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete All
+            </button>
           </div>
         </div>
 

@@ -13,18 +13,24 @@ import {
   customerRejectWorkScheduleWithAlternate,
   generateInvoice,
   markPaidOnSpot,
+  markPaymentWithSlip,
+  addReview,
   checkUpcomingReminders,
+  cancelRequest,
+  toggleInspectionRequirement,
 } from '../lib/db'
 import { useDBSnapshot } from '../lib/hooks'
 import WorkerProfileModal from './WorkerProfileModal'
 import RequestDetailModal from './RequestDetailModal'
+import NotificationBell from './NotificationBell'
 import Illustration from './Illustration'
 import CategoryPicker from './CategoryPicker'
 import type { ServiceCategory, ServiceRequest, SessionUser, WorkerProfile } from '../lib/types'
 import type { CustomerTab } from './BottomNav'
 import { ALL_CATEGORIES, getCategoryFormConfig } from '../lib/categoryConfig'
 import { Search, Briefcase, CheckCircle, Plus, Star, User,
-  Wrench, DollarSign, MapPin, Clock, AlertCircle, FileText, RefreshCw, Phone } from 'lucide-react'
+  Wrench, DollarSign, MapPin, Clock, AlertCircle, FileText, RefreshCw, Phone, Upload, X, ImageIcon, Loader2 } from 'lucide-react'
+import { uploadImageToCloudinary } from '../lib/cloudinary'
 
 const THEME = {
   primary: '#10B981',
@@ -201,6 +207,7 @@ export default function CustomerDashboard({ user, activeTab: externalTab, onTabC
                   Become a Worker
                 </button>
               )}
+              <NotificationBell user={user} />
               <span className="px-4 py-2 rounded-full text-sm font-medium bg-green-100 text-green-700">
                 {myActiveRequests.length} Active Request{myActiveRequests.length !== 1 ? 's' : ''}
               </span>
@@ -645,6 +652,7 @@ function ServiceRequestForm({
     urgency: 'low' | 'medium' | 'high'
     requiresInspection?: boolean
     categorySpecificData?: Record<string, string | number | boolean | string[]>
+    images?: string[]
   }) => void
 }) {
   const [category, setCategory] = useState<ServiceCategory>('AC')
@@ -657,6 +665,9 @@ function ServiceRequestForm({
   const [requiresInspection, setRequiresInspection] = useState(true)
   const [showCategoryPicker, setShowCategoryPicker] = useState(true)
   const [categorySpecificData, setCategorySpecificData] = useState<Record<string, string | number | boolean | string[]>>({})
+  const [images, setImages] = useState<string[]>([])
+  const [uploadingImages, setUploadingImages] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const detailsRef = useRef<HTMLDivElement | null>(null)
 
   // Get category-specific form fields
@@ -701,6 +712,7 @@ function ServiceRequestForm({
           urgency,
           requiresInspection,
           categorySpecificData: hasCustomFields ? categorySpecificData : undefined,
+          images: images.length > 0 ? images : undefined,
         })
       }}
     >
@@ -923,6 +935,71 @@ function ServiceRequestForm({
         </div>
       )}
 
+      {/* Image Upload */}
+      <div className="border-t border-gray-200 pt-4 mt-2">
+        <div className="flex items-center gap-2 mb-3">
+          <ImageIcon className="w-4 h-4 text-gray-500" />
+          <span className="text-sm font-medium text-gray-900">Upload Images (Optional)</span>
+        </div>
+        <input
+          type="file"
+          ref={fileInputRef}
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={async (e) => {
+            const files = e.target.files
+            if (files) {
+              setUploadingImages(true)
+              try {
+                for (const file of Array.from(files)) {
+                  if (images.length >= 5) break
+                  const imageUrl = await uploadImageToCloudinary(file)
+                  setImages((prev) => [...prev, imageUrl])
+                }
+              } catch (error) {
+                alert('Failed to upload image. Please try again.')
+              } finally {
+                setUploadingImages(false)
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = ''
+                }
+              }
+            }
+          }}
+        />
+        <div className="flex flex-wrap gap-2 mb-3">
+          {images.map((img, idx) => (
+            <div key={idx} className="relative">
+              <img src={img} alt={`Upload ${idx + 1}`} className="w-20 h-20 object-cover rounded-lg" />
+              <button
+                type="button"
+                onClick={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
+                className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            </div>
+          ))}
+          {uploadingImages && (
+            <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center">
+              <Loader2 className="w-6 h-6 text-gray-500 animate-spin" />
+            </div>
+          )}
+          {!uploadingImages && images.length < 5 && (
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="w-20 h-20 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center text-gray-500 hover:border-emerald-500 hover:text-emerald-500 transition-colors"
+            >
+              <Upload className="w-6 h-6 mb-1" />
+              <span className="text-xs">Add</span>
+            </button>
+          )}
+        </div>
+        <p className="text-xs text-gray-500">Upload up to 5 images to help workers understand the job better</p>
+      </div>
+
       <div className="flex gap-4 pt-4">
         <button type="submit" className="px-8 py-3.5 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Create Request</button>
       </div>
@@ -958,11 +1035,14 @@ function WorkerCard({ worker, onShowProfile }: { worker: WorkerProfile; onShowPr
   )
 }
 
-function CustomerRequestCard({ req, onShowWorkerProfile, onViewDetails }: { req: ServiceRequest; userId: string; hasReviewed: boolean; onShowWorkerProfile: (id: string) => void; onViewDetails?: (req: ServiceRequest) => void }) {
+function CustomerRequestCard({ req, userId, onShowWorkerProfile, onViewDetails }: { req: ServiceRequest; userId: string; hasReviewed: boolean; onShowWorkerProfile: (id: string) => void; onViewDetails?: (req: ServiceRequest) => void }) {
   const db = useDBSnapshot()
   const worker = useMemo(() => db.workers.find((w) => w.id === req.acceptedWorkerId), [db.workers, req.acceptedWorkerId])
   const interestedCount = (req.interestedWorkerIds ?? []).length
   const offers = req.quoteOffers ?? []
+
+  // Check if request can be cancelled
+  const canCancel = ['open', 'pending_customer_confirmation', 'inspection_pending_worker_proposal', 'inspection_pending_customer_confirmation', 'inspection_scheduled', 'awaiting_quote', 'quote_pending_approval'].includes(req.status)
 
   return (
     <CardShell>
@@ -1010,14 +1090,44 @@ function CustomerRequestCard({ req, onShowWorkerProfile, onViewDetails }: { req:
             {req.contactPhone && <p className="text-sm text-gray-600 flex items-center gap-1"><Phone className="w-3 h-3" /> {req.contactPhone}</p>}
           </div>
         )}
-        {worker && (
+        {/* Display uploaded images */}
+        {req.images && req.images.length > 0 && (
+          <div className="mb-4">
+            <p className="text-sm font-medium text-gray-700 mb-2">Attached Images:</p>
+            <div className="flex flex-wrap gap-2">
+              {req.images.map((img, idx) => (
+                <img key={idx} src={img} alt={`Request image ${idx + 1}`} className="w-20 h-20 object-cover rounded-lg cursor-pointer hover:opacity-80" onClick={() => window.open(img, '_blank')} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Toggle Inspection Requirement - only before inspection completed */}
+        {['open', 'pending_customer_confirmation', 'inspection_pending_worker_proposal', 'inspection_pending_customer_confirmation', 'inspection_scheduled'].includes(req.status) && (
           <div className="mb-4 p-4 rounded-2xl border border-gray-200 bg-gray-50">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-gray-800 truncate">Inspection Required?</div>
+                <div className="text-xs text-gray-500 truncate">Turn off if worker can quote without seeing the site</div>
+              </div>
+              <button
+                onClick={() => toggleInspectionRequirement({ requestId: req.id, customerId: userId, requiresInspection: !req.requiresInspection })}
+                className={`shrink-0 rounded-full px-3 py-2 text-xs font-semibold ring-1 transition-all ${req.requiresInspection !== false ? 'bg-emerald-600 text-white ring-emerald-600' : 'bg-white text-gray-700 ring-gray-200'}`}
+              >
+                {req.requiresInspection !== false ? 'Yes' : 'No'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {worker && (
+          <div className="mb-4 p-4 rounded-2xl border border-emerald-200 bg-emerald-50">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center"><User className="w-5 h-5" style={{ color: THEME.primary }} /></div>
-                <div><div className="font-semibold text-gray-900">{worker.name}</div><div className="text-sm text-gray-500">Assigned Worker</div></div>
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><User className="w-5 h-5 text-emerald-600" /></div>
+                <div><div className="font-semibold text-gray-900">{worker.name}</div><div className="text-sm text-emerald-600 font-medium">✓ Selected Worker</div></div>
               </div>
-              <button onClick={() => onShowWorkerProfile(worker.id)} className="px-3 py-1.5 rounded-lg text-sm font-medium text-green-600 hover:bg-green-50 transition-colors">View</button>
+              <button onClick={() => onShowWorkerProfile(worker.id)} className="px-3 py-1.5 rounded-lg text-sm font-medium text-emerald-600 hover:bg-emerald-100 transition-colors">View</button>
             </div>
           </div>
         )}
@@ -1035,6 +1145,22 @@ function CustomerRequestCard({ req, onShowWorkerProfile, onViewDetails }: { req:
                 )
               })}
             </div>
+          </div>
+        )}
+
+        {/* Cancel Button */}
+        {canCancel && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <button
+              onClick={() => {
+                if (confirm('Are you sure you want to cancel this request?')) {
+                  cancelRequest({ requestId: req.id, customerId: userId })
+                }
+              }}
+              className="w-full py-2.5 rounded-xl font-medium text-sm text-red-600 bg-red-50 hover:bg-red-100 transition-colors border border-red-200"
+            >
+              Cancel Request
+            </button>
           </div>
         )}
       </div>
@@ -1292,6 +1418,138 @@ function PaymentAndInvoiceUI({ req, customerId }: { req: ServiceRequest; custome
   const [showInvoiceForm, setShowInvoiceForm] = useState(false)
   const [invoiceAmount, setInvoiceAmount] = useState(req.quote?.amount?.toString() || '')
   const [invoiceDesc, setInvoiceDesc] = useState('')
+  const [showPaymentForm, setShowPaymentForm] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<'bank_transfer' | 'cash' | 'other'>('bank_transfer')
+  const [paymentSlipUrl, setPaymentSlipUrl] = useState('')
+  const [uploadingSlip, setUploadingSlip] = useState(false)
+  const [showReviewForm, setShowReviewForm] = useState(false)
+  const [rating, setRating] = useState(5)
+  const [reviewComment, setReviewComment] = useState('')
+
+  // Check if payment is already marked
+  const isPaymentMarked = req.payment?.status === 'pending' || req.payment?.status === 'paid'
+  const isPaymentConfirmed = req.payment?.status === 'paid'
+
+  if (showReviewForm && isPaymentConfirmed) {
+    return (
+      <div className="p-4 rounded-2xl border border-yellow-200 bg-yellow-50">
+        <p className="text-sm font-semibold text-gray-800 mb-3">Leave a Review</p>
+        <div className="mb-3">
+          <label className="block text-xs text-gray-500 mb-1">Rating (1-10)</label>
+          <input
+            type="range"
+            min="1"
+            max="10"
+            value={rating}
+            onChange={(e) => setRating(Number(e.target.value))}
+            className="w-full"
+          />
+          <div className="text-center font-semibold text-lg" style={{ color: THEME.primary }}>{rating}/10</div>
+        </div>
+        <textarea
+          value={reviewComment}
+          onChange={(e) => setReviewComment(e.target.value)}
+          placeholder="How was the work? Write your review..."
+          className="w-full p-3 rounded-xl border border-gray-200 mb-3 text-sm"
+          rows={3}
+        />
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowReviewForm(false)}
+            className="flex-1 py-3 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              if (req.acceptedWorkerId) {
+                addReview({
+                  requestId: req.id,
+                  customerId,
+                  rating: rating as 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10,
+                  comment: reviewComment,
+                })
+              }
+            }}
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+            style={{ background: THEME.primary }}
+          >
+            Submit Review
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (showPaymentForm) {
+    return (
+      <div className="p-4 rounded-2xl border border-blue-200 bg-blue-50">
+        <p className="text-sm font-semibold text-gray-800 mb-3">Upload Payment Proof</p>
+        <div className="mb-3">
+          <label className="block text-xs text-gray-500 mb-1">Payment Method</label>
+          <select
+            value={paymentMethod}
+            onChange={(e) => setPaymentMethod(e.target.value as 'bank_transfer' | 'cash' | 'other')}
+            className="w-full p-3 rounded-xl border border-gray-200 text-sm"
+          >
+            <option value="bank_transfer">Bank Transfer</option>
+            <option value="cash">Cash</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div className="mb-3">
+          <label className="block text-xs text-gray-500 mb-1">Payment Slip / Receipt</label>
+          <input
+            type="file"
+            accept="image/*,.pdf"
+            onChange={async (e) => {
+              const file = e.target.files?.[0]
+              if (file) {
+                setUploadingSlip(true)
+                try {
+                  const url = await uploadImageToCloudinary(file)
+                  setPaymentSlipUrl(url)
+                } catch {
+                  alert('Failed to upload. Please try again.')
+                } finally {
+                  setUploadingSlip(false)
+                }
+              }
+            }}
+            className="w-full text-sm"
+          />
+          {uploadingSlip && <p className="text-xs text-gray-500 mt-1">Uploading...</p>}
+          {paymentSlipUrl && <p className="text-xs text-green-600 mt-1">✓ Uploaded successfully</p>}
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowPaymentForm(false)}
+            className="flex-1 py-3 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => {
+              if (paymentSlipUrl) {
+                markPaymentWithSlip({
+                  requestId: req.id,
+                  customerId,
+                  paymentSlipUrl,
+                  paymentMethod,
+                })
+                setShowPaymentForm(false)
+              }
+            }}
+            disabled={!paymentSlipUrl || uploadingSlip}
+            className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all disabled:opacity-50"
+            style={{ background: THEME.primary }}
+          >
+            Submit Payment
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (showInvoiceForm) {
     return (
@@ -1342,7 +1600,37 @@ function PaymentAndInvoiceUI({ req, customerId }: { req: ServiceRequest; custome
 
   return (
     <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50">
-      {req.invoice ? (
+      {/* Payment Status */}
+      {isPaymentConfirmed ? (
+        <>
+          <div className="flex items-center gap-2 mb-3">
+            <CheckCircle className="w-5 h-5 text-emerald-600" />
+            <span className="text-sm font-semibold text-gray-800">Payment Confirmed</span>
+          </div>
+          <p className="text-sm text-gray-600 mb-3">Worker confirmed payment received. Thank you!</p>
+          <button
+            onClick={() => setShowReviewForm(true)}
+            className="w-full py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+            style={{ background: THEME.primary }}
+          >
+            Leave a Review
+          </button>
+        </>
+      ) : isPaymentMarked ? (
+        <>
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="w-5 h-5 text-amber-500" />
+            <span className="text-sm font-semibold text-gray-800">Payment Pending Confirmation</span>
+          </div>
+          <p className="text-sm text-gray-600 mb-3">You marked payment. Waiting for worker to confirm receipt.</p>
+          {req.payment?.paymentSlipUrl && (
+            <div className="mb-3 p-2 rounded-lg bg-white">
+              <p className="text-xs text-gray-500 mb-1">Payment Slip:</p>
+              <a href={req.payment.paymentSlipUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">View Receipt</a>
+            </div>
+          )}
+        </>
+      ) : req.invoice ? (
         <>
           <div className="flex items-center gap-2 mb-3">
             <FileText className="w-5 h-5 text-emerald-600" />
@@ -1350,11 +1638,18 @@ function PaymentAndInvoiceUI({ req, customerId }: { req: ServiceRequest; custome
           </div>
           <div className="text-2xl font-bold mb-2" style={{ color: THEME.primary }}>MVR {req.invoice.amount}</div>
           <p className="text-sm text-gray-600 mb-3">{req.invoice.description}</p>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
+            <button
+              onClick={() => setShowPaymentForm(true)}
+              className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+              style={{ background: THEME.primary }}
+            >
+              Upload Payment
+            </button>
             <button
               onClick={() => markPaidOnSpot({ requestId: req.id, customerId })}
               className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
-              style={{ background: THEME.primary }}
+              style={{ background: THEME.gray800 }}
             >
               Paid on Spot
             </button>
@@ -1363,13 +1658,20 @@ function PaymentAndInvoiceUI({ req, customerId }: { req: ServiceRequest; custome
       ) : (
         <>
           <p className="text-sm text-gray-600 mb-3">No invoice generated. Worker should provide invoice or you can mark as paid.</p>
-          <div className="flex gap-3">
+          <div className="flex gap-3 flex-wrap">
             <button
               onClick={() => setShowInvoiceForm(true)}
               className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
               style={{ background: THEME.primary }}
             >
               Generate Invoice
+            </button>
+            <button
+              onClick={() => setShowPaymentForm(true)}
+              className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+              style={{ background: THEME.primary }}
+            >
+              Upload Payment
             </button>
             <button
               onClick={() => markPaidOnSpot({ requestId: req.id, customerId })}

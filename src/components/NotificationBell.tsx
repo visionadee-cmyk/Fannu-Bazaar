@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect, useRef } from 'react'
 import { useDBSnapshot } from '../lib/hooks'
 import { markNotificationRead, markAllNotificationsRead } from '../lib/db'
 import type { SessionUser } from '../lib/types'
@@ -21,9 +21,33 @@ function formatIso(iso: string) {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
+// Simple notification sound using Web Audio API
+const playNotificationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+    const oscillator = audioContext.createOscillator()
+    const gainNode = audioContext.createGain()
+    
+    oscillator.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+    
+    oscillator.frequency.value = 800
+    oscillator.type = 'sine'
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5)
+    
+    oscillator.start(audioContext.currentTime)
+    oscillator.stop(audioContext.currentTime + 0.5)
+  } catch (e) {
+    // Audio not supported or user interaction required
+  }
+}
+
 function NotificationBell({ user }: { user: SessionUser }) {
   const db = useDBSnapshot()
   const [isOpen, setIsOpen] = useState(false)
+  const prevUnreadCount = useRef(0)
 
   // Determine effective role (handle 'dual' role by using currentView)
   const effectiveRole: EffectiveRole =
@@ -43,6 +67,14 @@ function NotificationBell({ user }: { user: SessionUser }) {
   }, [db, user.id, effectiveRole])
 
   const unreadCount = notifications.filter((n: any) => !n.read).length
+
+  // Play sound when new notifications arrive
+  useEffect(() => {
+    if (unreadCount > prevUnreadCount.current && prevUnreadCount.current > 0) {
+      playNotificationSound()
+    }
+    prevUnreadCount.current = unreadCount
+  }, [unreadCount])
 
   const handleMarkRead = (e: React.MouseEvent, id: string) => {
     e.stopPropagation()

@@ -19,9 +19,11 @@ import type { WorkerTab } from './BottomNav'
 import WorkerProfileForm from './WorkerProfileForm'
 import Illustration from './Illustration'
 import CategoryPicker from './CategoryPicker'
+import RequestTimeline from './RequestTimeline'
+import NotificationBell from './NotificationBell'
 import {
   Search, Briefcase, CheckCircle, Clock, Star, User,
-  Wrench, DollarSign, Calendar, MapPin, AlertCircle, FileText, Check, RefreshCw, Phone
+  Wrench, DollarSign, Calendar, MapPin, AlertCircle, FileText, Check, RefreshCw, Phone, ImageIcon
 } from 'lucide-react'
 
 const THEME = {
@@ -153,6 +155,7 @@ export default function WorkerDashboard({ user, activeTab: externalTab, onTabCha
                 <div className="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
                   {worker.jobsDone} jobs done
                 </div>
+                <NotificationBell user={user} />
               </div>
             )}
           </div>
@@ -363,7 +366,7 @@ export default function WorkerDashboard({ user, activeTab: externalTab, onTabCha
                   <button onClick={() => setActiveTab('browse')} className="px-8 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Browse Requests</button>
                 </div>
               ) : (
-                myActiveAssigned.map((r) => <WorkerJobCard key={r.id} req={r} />)
+                myActiveAssigned.map((r) => <WorkerJobCard key={r.id} req={r} workerId={user.id} />)
               )}
             </div>
           )}
@@ -381,7 +384,7 @@ export default function WorkerDashboard({ user, activeTab: externalTab, onTabCha
                   <p className="text-gray-500">Your completed jobs will appear here</p>
                 </div>
               ) : (
-                myCompletedAssigned.map((r) => <WorkerJobCard key={r.id} req={r} />)
+                myCompletedAssigned.map((r) => <WorkerJobCard key={r.id} req={r} workerId={user.id} />)
               )}
             </div>
           )}
@@ -470,6 +473,22 @@ function OpenRequestCard({ req, workerId, recommended }: { req: ServiceRequest; 
       </div>
       <div className="p-6">
         <p className="text-gray-600 mb-4">{req.description}</p>
+        {/* Images */}
+        {req.images && req.images.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ImageIcon className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-900">Attached Images ({req.images.length})</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {req.images.map((img, idx) => (
+                <a key={idx} href={img} target="_blank" rel="noopener noreferrer">
+                  <img src={img} alt={`Request image ${idx + 1}`} className="w-20 h-20 object-cover rounded-lg hover:opacity-80 transition-opacity cursor-pointer" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="flex items-center gap-2 mb-4">
           <span className="text-sm text-gray-500">Urgency: <span className="font-medium" style={{ color: req.urgency === 'high' ? '#f97316' : '#6b7280' }}>{req.urgency}</span></span>
         </div>
@@ -504,9 +523,11 @@ function OpenRequestCard({ req, workerId, recommended }: { req: ServiceRequest; 
   )
 }
 
-function WorkerJobCard({ req }: { req: ServiceRequest }) {
+function WorkerJobCard({ req, workerId }: { req: ServiceRequest; workerId: string }) {
   const db = useDBSnapshot()
   const customer = useMemo(() => db.customers.find((c) => c.id === req.customerId), [db.customers, req.customerId])
+  const [amount, setAmount] = useState<number>(req.quote?.amount ?? 0)
+  const [notes, setNotes] = useState<string>(req.quote?.notes ?? '')
 
   return (
     <CardShell>
@@ -520,6 +541,23 @@ function WorkerJobCard({ req }: { req: ServiceRequest }) {
         </div>
       </div>
       <div className="p-6">
+        <p className="text-gray-600 mb-4">{req.description}</p>
+        {/* Images */}
+        {req.images && req.images.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <ImageIcon className="w-4 h-4 text-gray-500" />
+              <span className="text-sm font-medium text-gray-900">Attached Images ({req.images.length})</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {req.images.map((img, idx) => (
+                <a key={idx} href={img} target="_blank" rel="noopener noreferrer">
+                  <img src={img} alt={`Request image ${idx + 1}`} className="w-20 h-20 object-cover rounded-lg hover:opacity-80 transition-opacity cursor-pointer" />
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
         {customer && (
           <div className="mb-4 p-4 rounded-2xl border border-gray-200 bg-gray-50">
             <div className="flex items-center gap-3 mb-2">
@@ -532,12 +570,61 @@ function WorkerJobCard({ req }: { req: ServiceRequest }) {
             </div>
           </div>
         )}
-        <div className="grid gap-2 text-sm text-gray-600 md:grid-cols-2">
+        <div className="grid gap-2 text-sm text-gray-600 md:grid-cols-2 mb-4">
           <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-400" /><span>Inspection: {formatIso(req.inspection?.scheduledFor)}</span></div>
           <div className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-gray-400" /><span>Quote: {req.quote?.amount ? `MVR ${req.quote.amount}` : '-'}</span></div>
           <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-400" /><span>Work: {formatIso(req.work?.scheduledFor)}</span></div>
           <div className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-gray-400" /><span>Payment: {req.payment?.status ?? '-'}</span></div>
         </div>
+
+        {/* Timeline */}
+        <div className="mb-4">
+          <RequestTimeline req={req} />
+        </div>
+
+        {/* Action Buttons Based on Status */}
+        {req.status === 'inspection_pending_worker_proposal' && (
+          <InspectionProposalUI req={req} workerId={workerId} />
+        )}
+
+        {req.status === 'inspection_scheduled' && (
+          <div className="p-4 rounded-2xl border border-indigo-200 bg-indigo-50">
+            <p className="text-sm text-gray-600 mb-3">Inspection scheduled. Mark as completed when done.</p>
+            <button onClick={() => workerCompleteInspection({ requestId: req.id, workerId })} className="w-full py-3.5 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Mark Inspection Completed</button>
+          </div>
+        )}
+
+        {req.status === 'awaiting_quote' && (
+          <div className="p-4 rounded-2xl border border-pink-200 bg-pink-50">
+            <label className="block text-sm font-semibold text-gray-800 mb-3">Submit Your Quote</label>
+            <div className="grid gap-3 mb-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1.5">Amount (MVR)</label>
+                <input type="number" className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500" value={amount} onChange={(e) => setAmount(Number(e.target.value))} min={0} />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1.5">Notes (optional)</label>
+                <input className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Materials, timeline..." />
+              </div>
+            </div>
+            <button onClick={() => submitQuote({ requestId: req.id, workerId, amount, notes })} className="w-full py-3.5 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Submit Quote</button>
+          </div>
+        )}
+
+        {req.status === 'work_pending_worker_schedule' && (
+          <WorkScheduleProposalUI req={req} workerId={workerId} />
+        )}
+
+        {req.status === 'work_scheduled' && (
+          <div className="p-4 rounded-2xl border border-orange-200 bg-orange-50">
+            <p className="text-sm text-gray-600 mb-3">Work is scheduled. Mark as completed when finished.</p>
+            <button onClick={() => workerCompleteWork({ requestId: req.id, workerId })} className="w-full py-3.5 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Mark Work Completed</button>
+          </div>
+        )}
+
+        {req.status === 'payment_pending' && (
+          <PaymentConfirmationUI req={req} workerId={workerId} />
+        )}
       </div>
     </CardShell>
   )
@@ -681,6 +768,17 @@ function PaymentConfirmationUI({ req, workerId }: { req: ServiceRequest; workerI
         </>
       ) : (
         <p className="text-sm text-gray-600 mb-3">No invoice generated. Customer may mark as paid on spot.</p>
+      )}
+
+      {/* Payment Slip */}
+      {req.payment?.paymentSlipUrl && (
+        <div className="mb-3 p-3 rounded-xl bg-white border border-gray-200">
+          <p className="text-sm font-medium text-gray-800 mb-2">Payment Slip Uploaded</p>
+          <p className="text-xs text-gray-500 mb-2">Method: {req.payment.paymentMethod?.replace('_', ' ')}</p>
+          <a href={req.payment.paymentSlipUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+            <ImageIcon className="w-4 h-4" /> View Receipt
+          </a>
+        </div>
       )}
 
       {req.payment?.paidOnSpot ? (

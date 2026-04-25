@@ -196,6 +196,8 @@ export type PaymentInfo = {
   paidOnSpot?: boolean
   customerMarkedAt?: string
   workerConfirmedAt?: string
+  paymentSlipUrl?: string
+  paymentMethod?: 'bank_transfer' | 'cash' | 'other'
 }
 
 export type Invoice = {
@@ -232,6 +234,9 @@ export type ServiceRequest = {
 
   // Category-specific dynamic form data
   categorySpecificData?: Record<string, string | number | boolean | string[]>
+
+  // Images uploaded by customer
+  images?: string[]
 
   customerId: string
   interestedWorkerIds?: string[]

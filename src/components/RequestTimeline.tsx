@@ -78,12 +78,12 @@ export default function RequestTimeline({ req }: { req: ServiceRequest }) {
   })
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 p-6">
+    <div className="bg-white rounded-2xl border border-gray-200 p-6 relative z-0">
       <h3 className="text-sm font-semibold text-gray-700 mb-4">Job Progress Timeline</h3>
       
-      <div className="relative">
+      <div className="relative isolate">
         {/* Vertical line */}
-        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200" />
+        <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-200 -z-10" />
         
         <div className="space-y-4">
           {relevantSteps.map((step) => {
@@ -91,9 +91,9 @@ export default function RequestTimeline({ req }: { req: ServiceRequest }) {
             const date = getStepDate(req, step.status)
             
             return (
-              <div key={step.status} className="relative flex items-start gap-4">
+              <div key={step.status} className="flex items-center gap-4">
                 {/* Status dot */}
-                <div className="relative z-10 flex-shrink-0">
+                <div className="flex-shrink-0">
                   {state === 'completed' && (
                     <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
                       <Check className="w-5 h-5 text-white" />
@@ -112,7 +112,7 @@ export default function RequestTimeline({ req }: { req: ServiceRequest }) {
                 </div>
                 
                 {/* Content */}
-                <div className="flex-1 pt-1">
+                <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className={`font-medium text-sm ${
                       state === 'completed' ? 'text-gray-800' :

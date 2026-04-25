@@ -339,6 +339,16 @@ The application is ready for deployment to any static hosting service:
 
 ## 📈 Recent Enhancements
 
+### v2.2 - Notifications, Payment & Reviews
+- **Notification Bell**: Real-time bell icon with unread count in all dashboards
+- **Notification Sound**: Audio alert when new notifications arrive
+- **Payment Slip Upload**: Cloudinary-powered image/PDF upload for payment proof
+- **Review System**: 1-10 rating with comments visible on worker profiles
+- **Load More Reviews**: Last 10 reviews shown with "Load More" for history
+- **Image Upload**: Customers upload job images when creating requests
+- **Visual Timelines**: Progress tracking with tick marks for both customer and worker
+- **Inspection Toggle**: Customers can toggle inspection requirement anytime
+
 ### v2.1 - Full Workflow & Recurring Services
 - **Complete Job Workflow**: End-to-end process from request to payment with time negotiation
 - **In-App Reminders**: 30/15 minute alerts for inspection and work schedules
@@ -390,4 +400,4 @@ For support and questions:
 ---
 
 Built with ❤️ for Fannu Bazaar service marketplace platform.
-*Last Updated: April 23, 2026*
+*Last Updated: April 24, 2026*

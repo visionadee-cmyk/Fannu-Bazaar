@@ -2,6 +2,35 @@
 
 All notable changes to the Fannu Bazaar project will be documented in this file.
 
+## [2.2.0] - 2025-04-24
+
+### Added
+- **Notification Bell**: Bell icon with unread badge in all dashboard headers
+- **Real-time Notifications**: Live notification dropdown with mark as read functionality
+- **Notification Sound Effects**: Web Audio API beep when new notifications arrive
+- **Payment Slip Upload**: Customers can upload payment proof (image/PDF) via Cloudinary
+- **Payment Confirmation UI**: Workers see payment slip and confirm receipt
+- **Review System**: 1-10 rating scale with comments, visible on worker profiles
+- **Load More Reviews**: Worker profiles show last 10 reviews with "Load More" option
+- **Inspection Toggle**: Customers can toggle inspection requirement until inspection completed
+- **Image Upload**: Customers can upload job images when creating requests
+- **Cloudinary Integration**: Image hosting for payment slips and job photos
+- **Worker Timeline**: Visual timeline showing job progress for workers
+- **Customer Timeline**: Visual timeline showing job status and actions needed
+- **Request Detail Modal**: Full request details with worker selection and work schedule confirmation
+
+### Changed
+- **NotificationBell Component**: Added sound effects and real-time tracking
+- **CustomerDashboard**: Added NotificationBell, payment UI, and review flow
+- **WorkerDashboard**: Added NotificationBell, payment confirmation, and timeline
+- **WorkerProfileModal**: Enhanced reviews section with load more functionality
+
+### Fixed
+- **Timeline Tick Alignment**: Fixed tick marks appearing above headings
+- **Select Button State**: Now immediately shows "Selected" after worker selection
+- **Missing Inspection UI**: Workers can now propose inspection dates/times
+- **Quote Approval Notification**: Workers receive notification when customer accepts quote
+
 ## [2.1.0] - 2025-04-23
 
 ### Added
