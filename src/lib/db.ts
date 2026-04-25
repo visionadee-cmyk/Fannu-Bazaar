@@ -1292,7 +1292,7 @@ export function trackVisitor(params: {
   isRegistered?: boolean
   userId?: string
   userRole?: 'customer' | 'worker' | 'admin'
-}) {
+}): Visitor {
   const db = load()
   const now = nowIso()
   
