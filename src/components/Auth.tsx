@@ -677,7 +677,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
               <img 
                 src={publicAssetUrl('logo.png')}
                 alt="Fannu Bazaar"
-                className="w-24 h-24 object-contain"
+                className="w-40 h-40 object-contain mix-blend-multiply"
                 loading="eager"
                 onError={(e) => {
                   const img = e.currentTarget
