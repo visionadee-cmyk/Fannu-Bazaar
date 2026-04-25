@@ -149,6 +149,20 @@ export type Review = {
   comment?: string
 }
 
+export type Visitor = {
+  id: string
+  sessionId: string
+  ip?: string
+  userAgent?: string
+  referrer?: string
+  visitedAt: string
+  lastSeenAt: string
+  pageViews: number
+  isRegistered: boolean
+  userId?: string
+  userRole?: 'customer' | 'worker' | 'admin'
+}
+
 export type TimeProposal = {
   proposedAt: string
   scheduledFor: string
@@ -270,4 +284,5 @@ export type DB = {
   requests: ServiceRequest[]
   reviews: Review[]
   notifications: Notification[]
+  visitors: Visitor[]
 }

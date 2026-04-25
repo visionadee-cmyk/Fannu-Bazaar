@@ -10,18 +10,20 @@ import {
   setWorkerActive,
   updateCustomer,
   updateWorker,
+  getVisitorStats,
 } from '../lib/db'
 import { useDBSnapshot } from '../lib/hooks'
 import WorkerProfileModal from './WorkerProfileModal'
 import NotificationBell from './NotificationBell'
 import Illustration from './Illustration'
+import QRCodeInstall from './QRCodeInstall'
 import type { CustomerProfile, SessionUser, ServiceRequest, WorkerProfile } from '../lib/types'
 import type { AdminTab } from './BottomNav'
 import {
   Users, Briefcase, Wrench, Settings, Search, Plus,
   Edit2, Trash2, Power, PowerOff, User, Star,
   Clock, DollarSign, MapPin,
-  TrendingUp, Activity, Calendar, Check
+  TrendingUp, Activity, Calendar, Check, QrCode, Eye
 } from 'lucide-react'
 
 const THEME = {
@@ -65,15 +67,17 @@ interface AdminDashboardProps {
 }
 
 // Map external tab names to internal tab names
-const tabMapping: Record<AdminTab, 'overview' | 'customers' | 'workers' | 'works' | 'settings'> = {
+const tabMapping: Record<AdminTab, 'overview' | 'statistics' | 'customers' | 'workers' | 'works' | 'settings'> = {
   dashboard: 'overview',
+  statistics: 'statistics',
   users: 'customers',
   jobs: 'works',
   profile: 'settings',
 };
 
-const reverseTabMapping: Record<'overview' | 'customers' | 'workers' | 'works' | 'settings', AdminTab> = {
+const reverseTabMapping: Record<'overview' | 'statistics' | 'customers' | 'workers' | 'works' | 'settings', AdminTab> = {
   overview: 'dashboard',
+  statistics: 'statistics',
   customers: 'users',
   workers: 'users',
   works: 'jobs',
@@ -123,6 +127,7 @@ export default function AdminDashboard({
 
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Activity },
+    { id: 'statistics', label: 'Statistics', icon: Eye, count: db.visitors.length },
     { id: 'customers', label: 'Customers', icon: Users, count: db.customers.length },
     { id: 'workers', label: 'Workers', icon: Wrench, count: db.workers.length },
     { id: 'works', label: 'Jobs', icon: Briefcase, count: db.requests.length },
@@ -157,10 +162,10 @@ export default function AdminDashboard({
                   loading="eager"
                 />
               </div>
-              <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-green-100 text-green-700">
+              <span className="hidden sm:inline-block px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-green-100 text-green-700">
                 {stats.activeWorkers} Active Workers
               </span>
-              <span className="px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
+              <span className="hidden sm:inline-block px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-blue-100 text-blue-700">
                 {stats.pendingRequests} Pending Jobs
               </span>
               <NotificationBell user={user} />
@@ -204,6 +209,7 @@ export default function AdminDashboard({
           transition={{ duration: 0.3 }}
         >
           {tab === 'overview' && <OverviewTab stats={stats} db={db} />}
+          {tab === 'statistics' && <StatisticsTab db={db} />}
           {tab === 'customers' && (
             <CustomersTab
               canImpersonate={canImpersonate}
@@ -280,6 +286,22 @@ function OverviewTab({ stats, db }: { stats: any; db: any }) {
           bgColor={THEME.greenLight}
           suffix="%"
         />
+      </div>
+
+      <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: THEME.primaryLight }}>
+              <QrCode className="w-5 h-5" style={{ color: THEME.primary }} />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">App QR Code (Poster)</h3>
+          </div>
+        </div>
+        <div className="p-6">
+          <div className="flex justify-center">
+            <QRCodeInstall />
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -379,6 +401,99 @@ function StatusBadge({ status }: { status: string }) {
     <span className={`px-3 py-1 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
       {config.label}
     </span>
+  )
+}
+
+function StatisticsTab({ db }: { db: any }) {
+  const visitorStats = getVisitorStats()
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <StatCard
+          title="Total Visitors"
+          value={visitorStats.totalVisitors}
+          subtitle={`${visitorStats.registeredVisitors} registered`}
+          icon={Eye}
+          color={THEME.primary}
+          bgColor={THEME.primaryLight}
+        />
+        <StatCard
+          title="Anonymous Visitors"
+          value={visitorStats.anonymousVisitors}
+          subtitle="Not registered"
+          icon={Users}
+          color={THEME.gray600}
+          bgColor={THEME.gray100}
+        />
+        <StatCard
+          title="Yesterday"
+          value={visitorStats.yesterdayVisitors}
+          subtitle="Last 24 hours"
+          icon={Calendar}
+          color={THEME.amber}
+          bgColor={THEME.amberLight}
+        />
+        <StatCard
+          title="Total Page Views"
+          value={visitorStats.totalPageViews}
+          subtitle="All sessions"
+          icon={Activity}
+          color={THEME.blue}
+          bgColor={THEME.blueLight}
+        />
+      </div>
+
+      <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900">Visitors by Role</h3>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-blue-50 rounded-xl p-4">
+              <div className="text-2xl font-bold text-blue-600">{visitorStats.byRole.customer}</div>
+              <div className="text-sm text-gray-600">Customers</div>
+            </div>
+            <div className="bg-green-50 rounded-xl p-4">
+              <div className="text-2xl font-bold text-green-600">{visitorStats.byRole.worker}</div>
+              <div className="text-sm text-gray-600">Workers</div>
+            </div>
+            <div className="bg-purple-50 rounded-xl p-4">
+              <div className="text-2xl font-bold text-purple-600">{visitorStats.byRole.admin}</div>
+              <div className="text-sm text-gray-600">Admins</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden">
+        <div className="p-6 border-b border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900">Recent Visitors</h3>
+        </div>
+        <div className="p-6">
+          <div className="space-y-3">
+            {db.visitors.slice(-5).reverse().map((visitor: any) => (
+              <div key={visitor.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-gray-900 truncate">
+                    {visitor.isRegistered ? 'Registered User' : 'Anonymous'}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    {new Date(visitor.visitedAt).toLocaleString()}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-sm font-medium text-gray-900">{visitor.pageViews} views</div>
+                  <div className="text-xs text-gray-500">
+                    {visitor.userRole || 'Guest'}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 

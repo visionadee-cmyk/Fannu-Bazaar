@@ -3,7 +3,7 @@ import { useLanguage } from '../lib/LanguageContext';
 
 export type CustomerTab = 'my' | 'create' | 'confirm' | 'workers' | 'completed';
 export type WorkerTab = 'jobs' | 'myWork' | 'completed' | 'profile';
-export type AdminTab = 'dashboard' | 'users' | 'jobs' | 'profile';
+export type AdminTab = 'dashboard' | 'users' | 'jobs' | 'profile' | 'statistics';
 
 interface BottomNavProps {
   userRole: 'admin' | 'customer' | 'worker';

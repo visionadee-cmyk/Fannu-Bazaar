@@ -7,6 +7,7 @@ import type {
   ServiceRequest,
   ServiceRequestStatus,
   WorkerProfile,
+  Visitor,
 } from './types'
 
 import { doc, getDoc, setDoc } from 'firebase/firestore'
@@ -15,7 +16,7 @@ import { firebaseDb } from './firebase'
 type Listener = () => void
 const listeners = new Set<Listener>()
 
-let cache: DB = { admins: [], customers: [], workers: [], requests: [], reviews: [], notifications: [] }
+let cache: DB = { admins: [], customers: [], workers: [], requests: [], reviews: [], notifications: [], visitors: [] }
 
 function cloneDB(db: DB): DB {
   return JSON.parse(JSON.stringify(db)) as DB
@@ -190,7 +191,7 @@ export async function refreshDB() {
     const snap = await getDoc(doc(firebaseDb, 'app_state', 'global'))
     const data = snap.data() as { db?: DB } | undefined
     if (data?.db) cache = data.db
-    else cache = { admins: [], customers: [], workers: [], requests: [], reviews: [], notifications: [] }
+    else cache = { admins: [], customers: [], workers: [], requests: [], reviews: [], notifications: [], visitors: [] }
   } catch (e: any) {
     if (e?.code === 'permission-denied') {
       console.warn('Firestore permission denied while loading app state. Using local state only.')
@@ -202,7 +203,7 @@ export async function refreshDB() {
 }
 
 export function resetDB() {
-  cache = { admins: [], customers: [], workers: [], requests: [], reviews: [], notifications: [] }
+  cache = { admins: [], customers: [], workers: [], requests: [], reviews: [], notifications: [], visitors: [] }
   for (const l of listeners) l()
   void persist(cache)
 }
@@ -303,7 +304,7 @@ export async function seedIfEmpty() {
     },
   ]
 
-  save({ admins, customers, workers, requests, reviews: [], notifications: [] })
+  save({ admins, customers, workers, requests, reviews: [], notifications: [], visitors: [] })
 }
 
 export function listWorkers(category?: ServiceCategory) {
@@ -1246,38 +1247,115 @@ export function checkUpcomingReminders(userId: string, userRole: 'customer' | 'w
     return r.acceptedWorkerId === userId
   })
 
-  relevantRequests.forEach((req) => {
-    const inspectionTime = req.inspection?.scheduledFor
-    const workTime = req.work?.scheduledFor
-
-    if (inspectionTime && req.status === 'inspection_scheduled') {
-      const scheduled = new Date(inspectionTime)
-      const diffMs = scheduled.getTime() - now.getTime()
-      const diffMin = Math.floor(diffMs / 60000)
-
-      if (diffMin <= 30 && diffMin > 15) {
-        reminders.push({ type: 'inspection', requestId: req.id, title: req.title, scheduledFor: inspectionTime, minutesUntil: diffMin, urgency: '30min' })
-      } else if (diffMin <= 15 && diffMin > 0) {
-        reminders.push({ type: 'inspection', requestId: req.id, title: req.title, scheduledFor: inspectionTime, minutesUntil: diffMin, urgency: '15min' })
-      } else if (diffMin <= 0 && diffMin > -5) {
-        reminders.push({ type: 'inspection', requestId: req.id, title: req.title, scheduledFor: inspectionTime, minutesUntil: 0, urgency: 'now' })
+  for (const req of relevantRequests) {
+    if (req.inspection?.scheduledFor) {
+      const scheduled = new Date(req.inspection.scheduledFor)
+      const diff = scheduled.getTime() - now.getTime()
+      const minutes = Math.floor(diff / 60000)
+      if (minutes >= 0 && minutes <= 30) {
+        reminders.push({
+          type: 'inspection',
+          requestId: req.id,
+          title: req.title,
+          scheduledFor: req.inspection.scheduledFor,
+          minutesUntil: minutes,
+          urgency: minutes <= 15 ? '15min' : '30min',
+        })
       }
     }
-
-    if (workTime && req.status === 'work_scheduled') {
-      const scheduled = new Date(workTime)
-      const diffMs = scheduled.getTime() - now.getTime()
-      const diffMin = Math.floor(diffMs / 60000)
-
-      if (diffMin <= 30 && diffMin > 15) {
-        reminders.push({ type: 'work', requestId: req.id, title: req.title, scheduledFor: workTime, minutesUntil: diffMin, urgency: '30min' })
-      } else if (diffMin <= 15 && diffMin > 0) {
-        reminders.push({ type: 'work', requestId: req.id, title: req.title, scheduledFor: workTime, minutesUntil: diffMin, urgency: '15min' })
-      } else if (diffMin <= 0 && diffMin > -5) {
-        reminders.push({ type: 'work', requestId: req.id, title: req.title, scheduledFor: workTime, minutesUntil: 0, urgency: 'now' })
+    if (req.work?.scheduledFor) {
+      const scheduled = new Date(req.work.scheduledFor)
+      const diff = scheduled.getTime() - now.getTime()
+      const minutes = Math.floor(diff / 60000)
+      if (minutes >= 0 && minutes <= 30) {
+        reminders.push({
+          type: 'work',
+          requestId: req.id,
+          title: req.title,
+          scheduledFor: req.work.scheduledFor,
+          minutesUntil: minutes,
+          urgency: minutes <= 15 ? '15min' : '30min',
+        })
       }
     }
-  })
+  }
 
-  return reminders.sort((a, b) => a.minutesUntil - b.minutesUntil)
+  return reminders
+}
+
+// Visitor tracking functions
+export function trackVisitor(params: {
+  sessionId: string
+  ip?: string
+  userAgent?: string
+  referrer?: string
+  isRegistered?: boolean
+  userId?: string
+  userRole?: 'customer' | 'worker' | 'admin'
+}) {
+  const db = load()
+  const now = nowIso()
+  
+  // Check if visitor already exists for this session
+  let visitor = db.visitors.find((v) => v.sessionId === params.sessionId)
+  
+  if (visitor) {
+    // Update existing visitor
+    visitor.lastSeenAt = now
+    visitor.pageViews += 1
+    if (params.isRegistered !== undefined) visitor.isRegistered = params.isRegistered
+    if (params.userId) visitor.userId = params.userId
+    if (params.userRole) visitor.userRole = params.userRole
+  } else {
+    // Create new visitor
+    visitor = {
+      id: `v_${Math.random().toString(16).slice(2)}`,
+      sessionId: params.sessionId,
+      ip: params.ip,
+      userAgent: params.userAgent,
+      referrer: params.referrer,
+      visitedAt: now,
+      lastSeenAt: now,
+      pageViews: 1,
+      isRegistered: params.isRegistered ?? false,
+      userId: params.userId,
+      userRole: params.userRole,
+    }
+    db.visitors.push(visitor)
+  }
+  
+  save(db)
+  return visitor
+}
+
+export function getVisitorStats() {
+  const db = load()
+  const now = new Date()
+  const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000)
+  const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+  
+  const totalVisitors = db.visitors.length
+  const registeredVisitors = db.visitors.filter((v) => v.isRegistered).length
+  const anonymousVisitors = totalVisitors - registeredVisitors
+  
+  const yesterdayVisitors = db.visitors.filter((v) => new Date(v.visitedAt) >= yesterday).length
+  const lastWeekVisitors = db.visitors.filter((v) => new Date(v.visitedAt) >= lastWeek).length
+  
+  const totalPageViews = db.visitors.reduce((sum, v) => sum + v.pageViews, 0)
+  
+  const byRole: Record<string, number> = {
+    customer: db.visitors.filter((v) => v.userRole === 'customer').length,
+    worker: db.visitors.filter((v) => v.userRole === 'worker').length,
+    admin: db.visitors.filter((v) => v.userRole === 'admin').length,
+  }
+  
+  return {
+    totalVisitors,
+    registeredVisitors,
+    anonymousVisitors,
+    yesterdayVisitors,
+    lastWeekVisitors,
+    totalPageViews,
+    byRole,
+  }
 }

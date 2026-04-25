@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { SessionUser } from '../lib/types'
 import { useDBSnapshot } from '../lib/hooks'
-import { createAdmin, createCustomer, createWorker, seedIfEmpty } from '../lib/db'
+import { createAdmin, createCustomer, createWorker, seedIfEmpty, trackVisitor } from '../lib/db'
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup } from 'firebase/auth'
 import { firebaseAuth } from '../lib/firebase'
 import { useLanguage } from '../lib/LanguageContext'
@@ -85,6 +85,20 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
       setShowAdminLogin(true)
     }
   }, [isAdminPath])
+
+  // Track visitor
+  useEffect(() => {
+    const sessionId = localStorage.getItem('session_id') || `session_${Math.random().toString(16).slice(2)}`
+    localStorage.setItem('session_id', sessionId)
+    
+    trackVisitor({
+      sessionId,
+      ip: undefined, // Browser doesn't expose IP
+      userAgent: navigator.userAgent,
+      referrer: document.referrer || undefined,
+      isRegistered: false,
+    })
+  }, [])
 
   useEffect(() => {
     const unsub = onAuthStateChanged(firebaseAuth, (user) => {
