@@ -223,7 +223,7 @@ export default function WorkerProfileModal({ workerId, onClose }: { workerId: st
               </div>
             </div>
 
-            {(worker.locationInfo || worker.location) && (
+            {worker.locationInfo && (
               <div className="bg-gray-50 rounded-2xl p-5">
                 <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <MapPin className="w-5 h-5 text-red-600" />
@@ -237,18 +237,18 @@ export default function WorkerProfileModal({ workerId, onClose }: { workerId: st
                     <div>
                       <div className="text-xs text-gray-500">Area</div>
                       <div className="font-semibold text-gray-900">
-                        {worker.locationInfo?.island || worker.location?.island}, {worker.locationInfo?.atoll || worker.location?.atoll}
+                        {worker.locationInfo.island}, {worker.locationInfo.atoll}
                       </div>
                     </div>
                   </div>
-                  {(worker.locationInfo?.address || worker.location?.address) && (
+                  {worker.locationInfo.address && (
                     <div className="flex items-center gap-3 p-3 bg-white rounded-xl">
                       <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
                         <Building2 className="w-4 h-4 text-orange-600" />
                       </div>
                       <div>
                         <div className="text-xs text-gray-500">Address</div>
-                        <div className="font-medium text-gray-900 text-sm">{worker.locationInfo?.address || worker.location?.address}</div>
+                        <div className="font-medium text-gray-900 text-sm">{worker.locationInfo.address}</div>
                       </div>
                     </div>
                   )}
@@ -258,7 +258,7 @@ export default function WorkerProfileModal({ workerId, onClose }: { workerId: st
                     </div>
                     <div>
                       <div className="text-xs text-gray-500">Service Area</div>
-                      <div className="font-medium text-gray-900 text-sm">{worker.locationInfo?.serviceArea || worker.location?.serviceArea}</div>
+                      <div className="font-medium text-gray-900 text-sm">{worker.locationInfo.serviceArea}</div>
                     </div>
                   </div>
                 </div>
@@ -376,7 +376,7 @@ export default function WorkerProfileModal({ workerId, onClose }: { workerId: st
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-xs font-bold">
-                          {rev.customerName?.charAt(0) || 'U'}
+                          {('customerName' in rev && (rev as any).customerName) ? ((rev as any).customerName as string).charAt(0) : 'U'}
                         </div>
                         <span className="text-xs text-gray-500">{new Date(rev.createdAt).toLocaleDateString()}</span>
                       </div>
