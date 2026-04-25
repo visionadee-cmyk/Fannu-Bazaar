@@ -424,22 +424,25 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
       <div className={`min-h-screen ${fontClass}`} style={{ background: `linear-gradient(135deg, ${THEME.bg} 0%, #ffffff 100%)` }}>
         {/* Hero Section */}
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-12">
-          {/* Top Bar: Logo + Language Toggle + Sign In / Sign Up */}
+          {/* Logo Section */}
+          <div className="flex justify-center mb-8">
+            <img 
+              src={publicAssetUrl('logo.png')}
+              alt="Fannu Bazaar"
+              className="w-48 h-48 object-contain mix-blend-multiply"
+              loading="eager"
+              onError={(e) => {
+                const img = e.currentTarget
+                if (img.dataset.fallbackApplied === '1') return
+                img.dataset.fallbackApplied = '1'
+                img.src = assetFallbackUrl('logo.png')
+              }}
+            />
+          </div>
+
+          {/* Top Bar: Language Toggle + Sign In / Sign Up */}
           <div className="flex justify-between items-center mb-6">
-            {/* Logo */}
             <div className="flex items-center gap-3">
-              <img 
-                src={publicAssetUrl('logo.png')}
-                alt="Fannu Bazaar"
-                className="w-32 h-32 object-contain mix-blend-multiply"
-                loading="eager"
-                onError={(e) => {
-                  const img = e.currentTarget
-                  if (img.dataset.fallbackApplied === '1') return
-                  img.dataset.fallbackApplied = '1'
-                  img.src = assetFallbackUrl('logo.png')
-                }}
-              />
               <span className="font-bold text-xl text-gray-900 hidden sm:block">Fannu Bazaar</span>
             </div>
 
@@ -677,7 +680,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
               <img 
                 src={publicAssetUrl('logo.png')}
                 alt="Fannu Bazaar"
-                className="w-40 h-40 object-contain mix-blend-multiply"
+                className="w-56 h-56 object-contain mix-blend-multiply"
                 loading="eager"
                 onError={(e) => {
                   const img = e.currentTarget
@@ -977,7 +980,7 @@ export default function Auth({ onLogin }: { onLogin: (u: SessionUser) => void })
               <img 
                 src={publicAssetUrl('logo.png')}
                 alt="Fannu Bazaar"
-                className="w-40 h-40 object-contain mix-blend-multiply"
+                className="w-56 h-56 object-contain mix-blend-multiply"
                 loading="eager"
                 onError={(e) => {
                   const img = e.currentTarget
