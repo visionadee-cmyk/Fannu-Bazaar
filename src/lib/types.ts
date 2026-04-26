@@ -94,6 +94,7 @@ export type ServiceRequestStatus =
   | 'work_scheduled'
   | 'work_completed_pending_customer_confirm'
   | 'payment_pending'
+  | 'review_pending'
   | 'completed'
 
 export type SessionUser = {

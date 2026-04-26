@@ -106,8 +106,7 @@ export default function CustomerDashboard({ user, activeTab: externalTab, onTabC
   const myRequests = useMemo(() => db.requests.filter((r: ServiceRequest) => r.customerId === user.id), [db.requests, user.id])
   const myActiveRequests = useMemo(() => myRequests.filter((r) => r.status !== 'completed'), [myRequests])
   const myCompletedRequests = useMemo(() => myRequests.filter((r) => r.status === 'completed'), [myRequests])
-  const needsMyAction = useMemo(() => myRequests.filter((r: ServiceRequest) =>
-    ['pending_customer_confirmation','inspection_pending_customer_confirmation','inspection_completed_pending_customer_confirm','quote_pending_approval','work_pending_customer_confirmation','work_completed_pending_customer_confirm'].includes(r.status)), [myRequests])
+  const needsMyAction = useMemo(() => myRequests.filter((r: ServiceRequest) => ['pending_customer_confirmation','inspection_pending_customer_confirmation','inspection_completed_pending_customer_confirm','quote_pending_approval','work_pending_customer_confirmation','work_completed_pending_customer_confirm','review_pending'].includes(r.status)), [myRequests])
   const reviewsByRequest = useMemo(() => {
     const map = new Map<string, true>()
     db.reviews.filter((r) => r.customerId === user.id).forEach((r) => map.set(r.requestId, true))
@@ -1213,6 +1212,13 @@ function CustomerRequestCard({ req, userId, onShowWorkerProfile, onViewDetails }
             </button>
           </div>
         )}
+
+        {/* Payment and Review UI - Show when payment pending, review pending, or completed */}
+        {(req.status === 'payment_pending' || req.status === 'work_completed_pending_customer_confirm' || req.status === 'review_pending' || req.status === 'completed') && (
+          <div className="mt-4">
+            <PaymentAndInvoiceUI req={req} customerId={userId} />
+          </div>
+        )}
       </div>
     </CardShell>
   )
@@ -1480,7 +1486,7 @@ function PaymentAndInvoiceUI({ req, customerId }: { req: ServiceRequest; custome
   const isPaymentMarked = req.payment?.status === 'pending' || req.payment?.status === 'paid'
   const isPaymentConfirmed = req.payment?.status === 'paid'
 
-  if (showReviewForm && isPaymentConfirmed) {
+  if (showReviewForm) {
     return (
       <div className="p-4 rounded-2xl border border-yellow-200 bg-yellow-50">
         <p className="text-sm font-semibold text-gray-800 mb-3">Leave a Review</p>
@@ -1649,15 +1655,76 @@ function PaymentAndInvoiceUI({ req, customerId }: { req: ServiceRequest; custome
   }
 
   return (
-    <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50">
+    <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 space-y-4">
       {/* Payment Status */}
       {isPaymentConfirmed ? (
-        <>
-          <div className="flex items-center gap-2 mb-3">
-            <CheckCircle className="w-5 h-5 text-emerald-600" />
-            <span className="text-sm font-semibold text-gray-800">Payment Confirmed</span>
+        <div className="flex items-center gap-2 mb-3">
+          <CheckCircle className="w-5 h-5 text-emerald-600" />
+          <span className="text-sm font-semibold text-gray-800">Payment Confirmed</span>
+        </div>
+      ) : isPaymentMarked ? (
+        <div className="flex items-center gap-2 mb-3">
+          <Clock className="w-5 h-5 text-amber-500" />
+          <span className="text-sm font-semibold text-gray-800">Payment Pending Confirmation</span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 mb-3">
+          <AlertCircle className="w-5 h-5 text-rose-500" />
+          <span className="text-sm font-semibold text-gray-800">Payment Required</span>
+        </div>
+      )}
+
+      {/* Payment Slip Display */}
+      {req.payment?.paymentSlipUrl && (
+        <div className="p-2 rounded-lg bg-white">
+          <p className="text-xs text-gray-500 mb-1">Payment Slip:</p>
+          <a href={req.payment.paymentSlipUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">View Receipt</a>
+        </div>
+      )}
+
+      {/* Invoice Display */}
+      {req.invoice ? (
+        <div className="p-3 rounded-lg bg-white">
+          <div className="flex items-center gap-2 mb-2">
+            <FileText className="w-4 h-4 text-emerald-600" />
+            <span className="text-sm font-semibold text-gray-800">Invoice #{req.invoice.id.slice(-6)}</span>
           </div>
-          <p className="text-sm text-gray-600 mb-3">Worker confirmed payment received. Thank you!</p>
+          <div className="text-xl font-bold mb-1" style={{ color: THEME.primary }}>MVR {req.invoice.amount}</div>
+          <p className="text-xs text-gray-600">{req.invoice.description}</p>
+        </div>
+      ) : (
+        <p className="text-sm text-gray-600">No invoice generated yet.</p>
+      )}
+
+      {/* Action Buttons */}
+      <div className="space-y-2">
+        {/* Always show upload option if payment slip not already uploaded */}
+        {!req.payment?.paymentSlipUrl && (
+          <button
+            onClick={() => setShowPaymentForm(true)}
+            className="w-full py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+            style={{ background: THEME.primary }}
+          >
+            Upload Payment Slip
+          </button>
+        )}
+
+        {/* Show paid on spot only if payment not confirmed */}
+        {!isPaymentConfirmed && !isPaymentMarked && (
+          <button
+            onClick={() => markPaidOnSpot({ requestId: req.id, customerId })}
+            className="w-full py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
+            style={{ background: THEME.gray800 }}
+          >
+            Paid on Spot (Cash)
+          </button>
+        )}
+
+        {isPaymentMarked && !isPaymentConfirmed && (
+          <p className="text-sm text-gray-600 text-center">Waiting for worker to confirm payment...</p>
+        )}
+
+        {isPaymentConfirmed && req.status === 'review_pending' && (
           <button
             onClick={() => setShowReviewForm(true)}
             className="w-full py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
@@ -1665,74 +1732,12 @@ function PaymentAndInvoiceUI({ req, customerId }: { req: ServiceRequest; custome
           >
             Leave a Review
           </button>
-        </>
-      ) : isPaymentMarked ? (
-        <>
-          <div className="flex items-center gap-2 mb-3">
-            <Clock className="w-5 h-5 text-amber-500" />
-            <span className="text-sm font-semibold text-gray-800">Payment Pending Confirmation</span>
-          </div>
-          <p className="text-sm text-gray-600 mb-3">You marked payment. Waiting for worker to confirm receipt.</p>
-          {req.payment?.paymentSlipUrl && (
-            <div className="mb-3 p-2 rounded-lg bg-white">
-              <p className="text-xs text-gray-500 mb-1">Payment Slip:</p>
-              <a href={req.payment.paymentSlipUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">View Receipt</a>
-            </div>
-          )}
-        </>
-      ) : req.invoice ? (
-        <>
-          <div className="flex items-center gap-2 mb-3">
-            <FileText className="w-5 h-5 text-emerald-600" />
-            <span className="text-sm font-semibold text-gray-800">Invoice #{req.invoice.id.slice(-6)}</span>
-          </div>
-          <div className="text-2xl font-bold mb-2" style={{ color: THEME.primary }}>MVR {req.invoice.amount}</div>
-          <p className="text-sm text-gray-600 mb-3">{req.invoice.description}</p>
-          <div className="flex gap-3 flex-wrap">
-            <button
-              onClick={() => setShowPaymentForm(true)}
-              className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
-              style={{ background: THEME.primary }}
-            >
-              Upload Payment
-            </button>
-            <button
-              onClick={() => markPaidOnSpot({ requestId: req.id, customerId })}
-              className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
-              style={{ background: THEME.gray800 }}
-            >
-              Paid on Spot
-            </button>
-          </div>
-        </>
-      ) : (
-        <>
-          <p className="text-sm text-gray-600 mb-3">No invoice generated. Worker should provide invoice or you can mark as paid.</p>
-          <div className="flex gap-3 flex-wrap">
-            <button
-              onClick={() => setShowInvoiceForm(true)}
-              className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
-              style={{ background: THEME.primary }}
-            >
-              Generate Invoice
-            </button>
-            <button
-              onClick={() => setShowPaymentForm(true)}
-              className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
-              style={{ background: THEME.primary }}
-            >
-              Upload Payment
-            </button>
-            <button
-              onClick={() => markPaidOnSpot({ requestId: req.id, customerId })}
-              className="flex-1 py-3 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all"
-              style={{ background: THEME.gray800 }}
-            >
-              Paid on Spot
-            </button>
-          </div>
-        </>
-      )}
+        )}
+
+        {req.status === 'completed' && (
+          <p className="text-sm text-gray-600 text-center">Review submitted. Thank you!</p>
+        )}
+      </div>
     </div>
   )
 }

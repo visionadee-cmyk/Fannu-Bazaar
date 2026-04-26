@@ -582,6 +582,20 @@ function WorkerJobCard({ req, workerId }: { req: ServiceRequest; workerId: strin
           <RequestTimeline req={req} />
         </div>
 
+        {/* Payment Slip - Always show if exists */}
+        {req.payment?.paymentSlipUrl && (
+          <div className="mb-4 p-4 rounded-xl bg-white border border-gray-200">
+            <div className="flex items-center gap-2 mb-2">
+              <FileText className="w-4 h-4 text-emerald-600" />
+              <p className="text-sm font-semibold text-gray-800">Payment Slip</p>
+            </div>
+            <p className="text-xs text-gray-500 mb-2">Method: {req.payment.paymentMethod?.replace('_', ' ')}</p>
+            <a href={req.payment.paymentSlipUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline flex items-center gap-1">
+              <ImageIcon className="w-4 h-4" /> View Receipt
+            </a>
+          </div>
+        )}
+
         {/* Action Buttons Based on Status */}
         {req.status === 'inspection_pending_worker_proposal' && (
           <InspectionProposalUI req={req} workerId={workerId} />

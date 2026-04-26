@@ -10,13 +10,14 @@ import type {
   Visitor,
 } from './types'
 
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, onSnapshot, Unsubscribe } from 'firebase/firestore'
 import { firebaseDb } from './firebase'
 
 type Listener = () => void
 const listeners = new Set<Listener>()
 
 let cache: DB = { admins: [], customers: [], workers: [], requests: [], reviews: [], notifications: [], visitors: [] }
+let realtimeUnsubscribe: Unsubscribe | null = null
 
 function cloneDB(db: DB): DB {
   return JSON.parse(JSON.stringify(db)) as DB
@@ -338,6 +339,32 @@ export async function refreshDB() {
   for (const l of listeners) l()
 }
 
+export function enableRealtimeSync() {
+  if (realtimeUnsubscribe) return // Already enabled
+
+  realtimeUnsubscribe = onSnapshot(
+    doc(firebaseDb, 'app_state', 'global'),
+    { includeMetadataChanges: false },
+    (snap) => {
+      const data = snap.data() as { db?: DB } | undefined
+      if (data?.db) {
+        cache = data.db
+        for (const l of listeners) l()
+      }
+    },
+    (error) => {
+      console.error('Real-time sync error:', error)
+    }
+  )
+}
+
+export function disableRealtimeSync() {
+  if (realtimeUnsubscribe) {
+    realtimeUnsubscribe()
+    realtimeUnsubscribe = null
+  }
+}
+
 export function resetDB() {
   cache = { admins: [], customers: [], workers: [], requests: [], reviews: [], notifications: [], visitors: [] }
   for (const l of listeners) l()
@@ -585,7 +612,8 @@ function findReqOrThrow(db: DB, requestId: string) {
   return req
 }
 
-export function acceptRequest(params: { requestId: string; workerId: string }) {
+export async function acceptRequest(params: { requestId: string; workerId: string }) {
+  await refreshDB()
   const db = load()
   const req = findReqOrThrow(db, params.requestId)
   if (req.status !== 'open' && req.status !== 'pending_customer_confirmation') {
@@ -715,7 +743,7 @@ export function addReview(params: {
   const db = load()
   const req = findReqOrThrow(db, params.requestId)
   if (req.customerId !== params.customerId) throw new Error('Not your request')
-  if (req.status !== 'completed') throw new Error('Request is not completed')
+  if (req.status !== 'review_pending') throw new Error('Request is not ready for review')
   if (!req.acceptedWorkerId) throw new Error('No worker assigned')
 
   const exists = db.reviews.find(
@@ -732,7 +760,7 @@ export function addReview(params: {
     rating: params.rating,
     comment: params.comment,
   }
-  db.reviews.unshift(review)
+  db.reviews.push(review)
 
   const worker = db.workers.find((w) => w.id === req.acceptedWorkerId)
   if (worker) {
@@ -742,6 +770,7 @@ export function addReview(params: {
     worker.ratingCount = nextCount
   }
 
+  setStatus(req, 'completed')
   save(db)
   return review
 }
@@ -1241,23 +1270,25 @@ export function markPaymentWithSlip(params: { requestId: string; customerId: str
   const db = load()
   const req = findReqOrThrow(db, params.requestId)
   if (req.customerId !== params.customerId) throw new Error('Not your request')
-  if (req.status !== 'payment_pending') throw new Error('Not in payment phase')
 
+  // Allow uploading slip at any time, even if payment is already confirmed
+  const existingPayment = req.payment ?? {}
   req.payment = {
-    status: 'pending',
-    markedAt: nowIso(),
+    ...existingPayment,
+    status: existingPayment.status || 'pending',
+    markedAt: existingPayment.markedAt || nowIso(),
     customerMarkedAt: nowIso(),
     paymentSlipUrl: params.paymentSlipUrl,
     paymentMethod: params.paymentMethod,
   }
 
-  if (req.acceptedWorkerId) {
+  if (req.acceptedWorkerId && !existingPayment.paymentSlipUrl) {
     createNotification({
       userId: req.acceptedWorkerId,
       userRole: 'worker',
       type: 'payment_received',
-      title: 'Payment marked with slip',
-      message: `Customer uploaded payment slip for "${req.title}". Please confirm receipt of payment.`,
+      title: 'Payment slip uploaded',
+      message: `Customer uploaded payment slip for "${req.title}". Please review.`,
       requestId: params.requestId,
     })
   }
@@ -1276,7 +1307,7 @@ export function workerConfirmPaymentReceived(params: { requestId: string; worker
     status: 'paid',
     workerConfirmedAt: nowIso(),
   }
-  setStatus(req, 'completed')
+  setStatus(req, 'review_pending')
 
   createNotification({
     userId: req.customerId,
