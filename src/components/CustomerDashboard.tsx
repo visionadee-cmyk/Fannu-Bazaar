@@ -24,7 +24,6 @@ import WorkerProfileModal from './WorkerProfileModal'
 import RequestDetailModal from './RequestDetailModal'
 import NotificationBell from './NotificationBell'
 import Illustration from './Illustration'
-import CategoryPicker from './CategoryPicker'
 import type { ServiceCategory, ServiceRequest, SessionUser, WorkerProfile } from '../lib/types'
 import type { CustomerTab } from './BottomNav'
 import { ALL_CATEGORIES, getCategoryFormConfig } from '../lib/categoryConfig'
@@ -655,6 +654,7 @@ function ServiceRequestForm({
     images?: string[]
   }) => void
 }) {
+  const db = useDBSnapshot()
   const [category, setCategory] = useState<ServiceCategory>('AC')
   const [subcategory, setSubcategory] = useState<string | undefined>(undefined)
   const [title, setTitle] = useState('')
@@ -663,27 +663,19 @@ function ServiceRequestForm({
   const [budget, setBudget] = useState<number>(1000)
   const [urgency, setUrgency] = useState<'low' | 'medium' | 'high'>('medium')
   const [requiresInspection, setRequiresInspection] = useState(true)
-  const [showCategoryPicker, setShowCategoryPicker] = useState(true)
   const [categorySpecificData, setCategorySpecificData] = useState<Record<string, string | number | boolean | string[]>>({})
   const [images, setImages] = useState<string[]>([])
   const [uploadingImages, setUploadingImages] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const detailsRef = useRef<HTMLDivElement | null>(null)
 
   // Get category-specific form fields
   const categoryFields = useMemo(() => getCategoryFormConfig(category), [category])
   const hasCustomFields = categoryFields.length > 0
 
-  const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 639px)').matches
-
-  const goToDetails = () => {
-    setShowCategoryPicker(false)
-    if (isMobile) {
-      requestAnimationFrame(() => {
-        detailsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      })
-    }
-  }
+  // Filter workers by selected category
+  const categoryWorkers = useMemo(() => {
+    return db.workers.filter(w => w.categories.includes(category) && w.active)
+  }, [db.workers, category])
 
   // Handle category-specific field changes
   const handleFieldChange = (fieldName: string, value: string | number | boolean | string[]) => {
@@ -732,55 +724,22 @@ function ServiceRequestForm({
 
       <div className="grid gap-5 md:grid-cols-2">
         <div>
-          <div className="flex items-center justify-between gap-3 mb-2">
-            <label className="block text-sm font-semibold text-gray-800">Service Category</label>
-            {!showCategoryPicker && (
-              <button
-                type="button"
-                className="text-sm font-semibold text-green-700"
-                onClick={() => setShowCategoryPicker(true)}
-              >
-                Change
-              </button>
-            )}
-          </div>
-
-          {showCategoryPicker ? (
-            <>
-              <CategoryPicker
-                category={category}
-                subcategory={subcategory}
-                onChange={(next) => {
-                  if (next.category === 'All') return
-                  handleCategoryChange(next.category)
-                  setSubcategory(next.subcategory)
-                  goToDetails()
-                }}
-                className="mb-4"
-              />
-              <select
-                className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
-                value={category}
-                onChange={(e) => {
-                  handleCategoryChange(e.target.value as ServiceCategory)
-                  goToDetails()
-                }}
-              >
-                {ALL_CATEGORIES.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </>
-          ) : (
-            <div className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800">
-              <div className="font-semibold">{category}</div>
-              {subcategory ? <div className="text-sm text-gray-500">{subcategory}</div> : null}
-            </div>
-          )}
+          <label className="block text-sm font-semibold text-gray-800 mb-2">Service Category</label>
+          <select
+            className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
+            value={category}
+            onChange={(e) => {
+              handleCategoryChange(e.target.value as ServiceCategory)
+            }}
+          >
+            {ALL_CATEGORIES.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
         </div>
-        <div ref={detailsRef}>
+        <div>
           <label className="block text-sm font-semibold text-gray-800 mb-2">Title</label>
           <input className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g., AC not cooling" />
         </div>
@@ -1003,6 +962,34 @@ function ServiceRequestForm({
       <div className="flex gap-4 pt-4">
         <button type="submit" className="px-8 py-3.5 rounded-xl font-semibold text-white shadow-lg hover:shadow-xl transition-all" style={{ background: THEME.primary }}>Create Request</button>
       </div>
+
+      {/* Available Workers in Selected Category */}
+      {categoryWorkers.length > 0 && (
+        <div className="mt-8 pt-6 border-t border-gray-200">
+          <h3 className="text-sm font-semibold text-gray-800 mb-4">Available {category} Workers</h3>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {categoryWorkers.slice(0, 6).map(worker => (
+              <div key={worker.id} className="p-4 rounded-xl border border-gray-200 bg-gray-50">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: THEME.primaryLight }}>
+                    <Wrench className="w-5 h-5" style={{ color: THEME.primary }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-semibold text-gray-900 truncate">{worker.name}</h4>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-xs font-medium text-amber-600"><Star className="w-3 h-3 fill-current inline" /> {worker.ratingAvg.toFixed(1)}</span>
+                      <span className="text-xs text-gray-500">{worker.jobsDone} jobs</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {categoryWorkers.length > 6 && (
+            <p className="text-xs text-gray-500 mt-2">And {categoryWorkers.length - 6} more workers in this category</p>
+          )}
+        </div>
+      )}
     </form>
   )
 }
